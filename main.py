@@ -1,11 +1,24 @@
 import pandas as pd
 from nltk.corpus import stopwords
+import nltk
 import re
+import csv
 import contractions
+from nltk.tokenize import TweetTokenizer
+from nltk.stem import WordNetLemmatizer
+from nltk.corpus import wordnet
+
+nltk.download('punkt')
+nltk.download('wordnet')
+nltk.download('omw-1.4')
+nltk.download('averaged_perceptron_tagger')
 
 #########################################
 # DATA IMPORT
-df = pd.read_csv("pretoken_cleaned.csv",
+# df = pd.read_csv("data/cc_mentions.csv")
+# df = df[['tweet_id', 'text']]
+# df.to_csv('data/cc_id_text_raw.csv')
+df = pd.read_csv("data/cc_id_text_raw.csv",
                  dtype={'tweet_id': 'str',
                         'text': 'str'})
 df['text'] = df['text'].astype(str) # For whatever reason, you need to forcefully coerce
@@ -15,12 +28,6 @@ df['text'] = df['text'].astype(str) # For whatever reason, you need to forcefull
 
 stop_words = set(stopwords.words('english'))
 
-
-# nltk.download('punkt')
-# nltk.download('wordnet')
-# nltk.download('omw-1.4')
-# nltk.download('averaged_perceptron_tagger')
-# convert stringified list to list
 def strg_list_to_list(strg_list):
     return strg_list.strip("[]").replace("'", "").replace('"', "").replace(",", "").split()
 
@@ -59,21 +66,19 @@ def pretokenization_cleaning(text):
     text = remove_stopwords(text)
     return text
 
+df['pretoken'] = df['text'].apply(pretokenization_cleaning)
 
-df['text'] = df['text'].apply(remove_contractions)
-
+##############################################
 # TOKENIZATION
-from nltk.tokenize import TweetTokenizer
-
 
 def tokenize(text):
     tknzr = TweetTokenizer(reduce_len=True)
     return tknzr.tokenize(text)
 
+df['token'] = df['text'].apply(tokenize)
 
+##############################################
 # NORMALIZING (STEMMER)
-import nltk
-
 
 def stemming(unkn_input):
     porter = nltk.PorterStemmer()
@@ -89,15 +94,16 @@ def stemming(unkn_input):
     # return " ".join(list_stemmed) #string
     return list_stemmed  # list
 
+df['stemmed'] = df['token'].apply(stemming)
 
+# NOTE:
+# You can either stem (reduce to word stems) or lemmatize when cleaning words.
+# I prefer lemmatization as it seems a bit more accurate.
+
+##############################################
 # NORMALIZING (LEMMATIZER)
-# Normalizing task using Lemmatizer
-import nltk
-from nltk.stem import WordNetLemmatizer
-from nltk.corpus import wordnet
 
 lemmatizer = WordNetLemmatizer()
-
 
 def nltk_pos_tagger(nltk_tag):
     if nltk_tag.startswith('J'):
@@ -121,7 +127,6 @@ def lemmatize(unkn_input):
     list_sentence = [item.lower() for item in list_input]
     nltk_tagged = nltk.pos_tag(list_sentence)
     wordnet_tagged = map(lambda x: (x[0], nltk_pos_tagger(x[1])), nltk_tagged)
-
     lemmatized_sentence = []
     for word, tag in wordnet_tagged:
         if tag is None:
@@ -131,7 +136,10 @@ def lemmatize(unkn_input):
         # " ".join(lemmatized_sentence)
     return lemmatized_sentence
 
+# LEMMATIZING
+df['lemmatized'] = df['token'].apply(lemmatize)
 
+###########################################
 # POST-TOKENIZATION TASKS:
 # the following post-tokenization receives list as input parameter
 # and returns list as output
@@ -168,15 +176,12 @@ def remove_punc(list_token):
     list_output = [process(token) for token in list_token]
     return list_output
 
-
 def remove_empty_item(list_item):
     token = [token for token in list_item if len(token) > 0]
     return token
 
-
 def lowercase_alpha(list_token):
     return [token.lower() if (token.isalpha() or token[0] == '#') else token for token in list_token]
-
 
 def posttokenization_cleaning(unkn_input):
     list_output = []
@@ -190,51 +195,11 @@ def posttokenization_cleaning(unkn_input):
 
     return (list_output)
 
-
-# RUN PRE-TOKENIZING TASKS
-df['pretoken'] = [pretokenization_cleaning(sentence) for sentence in df['text']]
-df.head()
-
-# RUN TOKENIZATION TASKS
-
-# calling tokenize (list comprehension style)
-df['token'] = [tokenize(sentence) for sentence in df['pretoken']]
-df.head()
-
-#################################
-# NOTE:
-# For the sections below. You can run both but should only use one. Stemming removes suffices,
-# whereas lemmatization uses the WordNet dictionary. It is the way to go.
-
-# STEMMING
-##### df['stemmed']=[stemming(tokenize(sentence)) for sentence in df['pretoken']]
-##### df.head()
-
-# LEMMATIZING
-df['lemmatized'] = [lemmatize(tokenize(sentence)) for sentence in df['pretoken']]
-df.head()
-
-# POST-TOKENIZING CLEANING
 # Removes empty tokens, single punctuation, etc.
-df['posttoken'] = [posttokenization_cleaning(list_sentence) for list_sentence in df['lemmatized']]
-df.head()
+df['posttoken'] = df['lemmatized'].apply(posttokenization_cleaning)
 
 #################################
-# EXPORT CSV
-# (1)export the final dataset
-import csv
+# EXPORT CLEANED DATA AS CSV
 
-final_csv = 'pre_processed_tweets.csv'
+df.to_csv('data/pre_processed_tweets.csv')
 
-
-def export_csv():
-    # get list of columns from df
-    listHeader = list(df.columns.values)
-    # insert index column header to the first pos in list
-    listHeader.insert(0, 'index')
-    # export df to csv
-    # set the quoting to be QUOTE_ALL
-    df.to_csv(final_csv, columns=df.columns.values, quoting=csv.QUOTE_ALL)
-
-
-export_csv()
