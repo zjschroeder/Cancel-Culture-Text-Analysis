@@ -4,6 +4,7 @@ import nltk
 import re
 import csv
 import contractions
+import os
 from nltk.tokenize import TweetTokenizer
 from nltk.stem import WordNetLemmatizer
 from nltk.corpus import wordnet
@@ -201,5 +202,55 @@ df['posttoken'] = df['lemmatized'].apply(posttokenization_cleaning)
 #################################
 # EXPORT CLEANED DATA AS CSV
 
-df.to_csv('data/pre_processed_tweets.csv')
+# df.to_csv('data/pre_processed_tweets.csv')
+df = pd.read_csv("data/pre_processed_tweets.csv")
+
+###################################################################################################
+# Examining other datasets
+
+# df.to_csv('data/pre_processed_tweets.csv')
+
+
+##############################
+# SINGLE MERGED JSONS
+
+folder_path = '/Users/zjschroeder/PycharmProjects/Cancel-Culture-Text-Analysis/data/combined_json'
+
+
+def merge_json_files(folder_path):
+    # Get a list of all JSON files in the specified folder
+    json_files = [f for f in os.listdir(folder_path) if f.endswith('.json')]
+
+    # Initialize an empty list to store dataframes and original file names
+    dfs = []
+
+    # Iterate through each JSON file and append dataframe and file name to the list
+    for file in json_files:
+        file_path = os.path.join(folder_path, file)
+
+        # Read JSON file into a dataframe
+        json_df = pd.read_json(file_path, orient='records')
+
+        # Add a new column for the original file name without the ".json" suffix
+        json_df['original_filename'] = os.path.splitext(file)[0]
+
+        # Append dataframe and file name to the list
+        dfs.append(json_df)
+
+    # Concatenate all dataframes in the list
+    merged_df = pd.concat(dfs, axis=0, ignore_index=True, sort=False)
+
+    return merged_df
+
+merged_dataframe = merge_json_files(folder_path)
+
+############ Count Tweets per Category
+filename_counts = merged_dataframe['original_filename'].value_counts()
+filename_counts_df = pd.DataFrame({'original_filename': filename_counts.index, 'count': filename_counts.values})
+print(filename_counts_df)
+
+###############################
+# UNMERGED JSONS
+
+
 
