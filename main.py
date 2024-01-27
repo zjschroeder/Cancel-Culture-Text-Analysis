@@ -206,10 +206,6 @@ df['posttoken'] = df['lemmatized'].apply(posttokenization_cleaning)
 df = pd.read_csv("data/pre_processed_tweets.csv")
 
 ###################################################################################################
-# Examining other datasets
-
-# df.to_csv('data/pre_processed_tweets.csv')
-
 
 ##############################
 # SINGLE MERGED JSONS
@@ -250,7 +246,28 @@ filename_counts_df = pd.DataFrame({'original_filename': filename_counts.index, '
 print(filename_counts_df)
 
 ###############################
-# UNMERGED JSONS
+# Examining the cleaned .csv files from R cleaning the tweets
+
+will_smith = pd.read_json("data/combined_json/will_smith_full.json")
+rkelly = pd.read_json("data/combined_json/rkelly.json")
+lindsayellis = pd.read_json("data/combined_json/lindsayellis.json")
+justinesacco = pd.read_json("data/combined_json/justinesacco.json")
+permitpatty = pd.read_json("data/combined_json/permitpatty.json")
+bbqbecky = pd.read_json("data/combined_json/bbqbecky.json")
+dojacat = pd.read_json("data/combined_json/dojacat.json")
+kanyewest = pd.read_json("data/combined_json/kanyewest.json")
+
+# Clean to filter out retweets
 
 
+###############################
+# MEANING EXTRACTION METHOD DATA PREP
+
+# Set word threshold: Filter tweets with <5 words
+
+# Create counts of words that appear in < 10% of Tweets
+
+# Create the matrix that is all tweets by all words binary 0/1
+
+# PCA
 
