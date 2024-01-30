@@ -1,3 +1,4 @@
+#------------------------------------------------- CHUNK 1: IMPORT -------------------------------------------------
 import pandas as pd
 from nltk.corpus import stopwords
 import nltk
@@ -8,24 +9,41 @@ import os
 from nltk.tokenize import TweetTokenizer
 from nltk.stem import WordNetLemmatizer
 from nltk.corpus import wordnet
-
 nltk.download('punkt')
 nltk.download('wordnet')
 nltk.download('omw-1.4')
 nltk.download('averaged_perceptron_tagger')
 
-#########################################
-# DATA IMPORT
-# df = pd.read_csv("data/cc_mentions.csv")
-# df = df[['tweet_id', 'text']]
-# df.to_csv('data/cc_id_text_raw.csv')
-df = pd.read_csv("data/cc_id_text_raw.csv",
-                 dtype={'tweet_id': 'str',
-                        'text': 'str'})
-df['text'] = df['text'].astype(str) # For whatever reason, you need to forcefully coerce
+#------------------------------------------ CHUNK 2: FUNCTION TO MERGE JSONS ------------------------------------------
 
-#########################################
-# PRE-TOKENIZATION STRING CLEANING
+folder_path = '/Users/zjschroeder/PycharmProjects/Cancel-Culture-Text-Analysis/data/combined_json'
+
+def merge_json_files(folder_path):
+    # Get a list of all JSON files in the specified folder
+    json_files = [f for f in os.listdir(folder_path) if f.endswith('.json')]
+
+    # Initialize an empty list to store dataframes and original file names
+    dfs = []
+
+    # Iterate through each JSON file and append dataframe and file name to the list
+    for file in json_files:
+        file_path = os.path.join(folder_path, file)
+
+        # Read JSON file into a dataframe
+        json_df = pd.read_json(file_path, orient='records')
+
+        # Add a new column for the original file name without the ".json" suffix
+        json_df['original_filename'] = os.path.splitext(file)[0]
+
+        # Append dataframe and file name to the list
+        dfs.append(json_df)
+
+    # Concatenate all dataframes in the list
+    merged_df = pd.concat(dfs, axis=0, ignore_index=True, sort=False)
+
+    return merged_df
+
+#------------------------------------------ CHUNK 3: PRE-TOKEN DATA CLEANING ------------------------------------------
 
 stop_words = set(stopwords.words('english'))
 
@@ -67,19 +85,13 @@ def pretokenization_cleaning(text):
     text = remove_stopwords(text)
     return text
 
-df['pretoken'] = df['text'].apply(pretokenization_cleaning)
-
-##############################################
-# TOKENIZATION
+#------------------------------------------ CHUNK 4: TOKENIZATION ------------------------------------------
 
 def tokenize(text):
     tknzr = TweetTokenizer(reduce_len=True)
     return tknzr.tokenize(text)
 
-df['token'] = df['text'].apply(tokenize)
-
-##############################################
-# NORMALIZING (STEMMER)
+#------------------------------------------ CHUNK 5: STEMMER FUNCTION ------------------------------------------
 
 def stemming(unkn_input):
     porter = nltk.PorterStemmer()
@@ -95,14 +107,7 @@ def stemming(unkn_input):
     # return " ".join(list_stemmed) #string
     return list_stemmed  # list
 
-df['stemmed'] = df['token'].apply(stemming)
-
-# NOTE:
-# You can either stem (reduce to word stems) or lemmatize when cleaning words.
-# I prefer lemmatization as it seems a bit more accurate.
-
-##############################################
-# NORMALIZING (LEMMATIZER)
+#------------------------------------------ CHUNK 6: LEMMATIZER ------------------------------------------
 
 lemmatizer = WordNetLemmatizer()
 
@@ -118,8 +123,6 @@ def nltk_pos_tagger(nltk_tag):
     else:
         return None
 
-
-# lemmatize requires list input
 def lemmatize(unkn_input):
     if (isinstance(unkn_input, list)):
         list_input = unkn_input
@@ -137,14 +140,7 @@ def lemmatize(unkn_input):
         # " ".join(lemmatized_sentence)
     return lemmatized_sentence
 
-# LEMMATIZING
-df['lemmatized'] = df['token'].apply(lemmatize)
-
-###########################################
-# POST-TOKENIZATION TASKS:
-# the following post-tokenization receives list as input parameter
-# and returns list as output
-
+#------------------------------------------ CHUNK 7: POST-TOKEN CLEANING  ------------------------------------------
 def remove_punc(list_token):
     # print(list_token)
     def process(strg_token):
@@ -196,71 +192,101 @@ def posttokenization_cleaning(unkn_input):
 
     return (list_output)
 
-# Removes empty tokens, single punctuation, etc.
-df['posttoken'] = df['lemmatized'].apply(posttokenization_cleaning)
+#------------------------------------------ CHUNK 8: Full Function ------------------------------------------
+def clean_tweets(df):
+    df['pretoken'] = df['text'].apply(pretokenization_cleaning)
+    df['token'] = df['text'].apply(tokenize)
+    df['lemmatized'] = df['token'].apply(lemmatize)
+    df['posttoken'] = df['lemmatized'].apply(posttokenization_cleaning)
+    return(df)
 
-#################################
-# EXPORT CLEANED DATA AS CSV
+# Function to process each file
+def process_file(file_path):
+    # Determine file type based on extension
+    file_extension = os.path.splitext(file_path)[-1].lower()
 
-# df.to_csv('data/pre_processed_tweets.csv')
-df = pd.read_csv("data/pre_processed_tweets.csv")
+    if file_extension == '.json':
+        df = pd.read_json(file_path,
+                     dtype={'tweet_id': 'str',
+                            'text': 'str'})
+    elif file_extension == '.csv':
+        df = pd.read_csv(file_path,
+                     dtype={'tweet_id': 'str',
+                            'text': 'str'})
+    else:
+        # Skip files with unsupported extensions
+        return None
 
-###################################################################################################
+    # Apply the clean_tweets function
+    df = clean_tweets(df)
 
-##############################
-# SINGLE MERGED JSONS
+    # Add a new column for the original filename without extension
+    filename = os.path.splitext(os.path.basename(file_path))[0]
+    df['original_filename'] = filename
 
-folder_path = '/Users/zjschroeder/PycharmProjects/Cancel-Culture-Text-Analysis/data/combined_json'
+    return df
 
+#------------------------------------------ CHUNK 9: Apply to Datasets  ------------------------------------------
 
-def merge_json_files(folder_path):
-    # Get a list of all JSON files in the specified folder
-    json_files = [f for f in os.listdir(folder_path) if f.endswith('.json')]
+# Study 1
+cc = clean_tweets("data/study_1_cancel_culture/raw_data/cc_full.csv")
+cc.to_csv("data/study_1_cancel_culture/study1_cleaned.csv", index = False)
 
-    # Initialize an empty list to store dataframes and original file names
-    dfs = []
+# Study 2
+isover1 = process_file("data/study_2_isoverparty/isover1.csv")
+isover2 = process_file("data/study_2_isoverparty/isover2.csv")
+isoverparty = process_file("data/study_2_isoverparty/isoverparty.csv")
+is_over = process_file("data/study_2_isoverparty/is_over.csv")
 
-    # Iterate through each JSON file and append dataframe and file name to the list
-    for file in json_files:
-        file_path = os.path.join(folder_path, file)
+study2 = pd.concat([isover1, isover2, isoverparty], ignore_index=True)
+study2.to_csv("data/study_2_isoverparty/study2.csv", index = False)
 
-        # Read JSON file into a dataframe
-        json_df = pd.read_json(file_path, orient='records')
+# Study 3
+faculty_2 = process_file("data/study_3_faculty/faculty_2.csv")
+faculty_3 = process_file("data/study_3_faculty/faculty_3.csv")
+faculty_query2_1 = process_file("data/study_3_faculty/faculty_query2_1.csv")
+faculty = process_file("data/study_3_faculty/faculty.csv")
 
-        # Add a new column for the original file name without the ".json" suffix
-        json_df['original_filename'] = os.path.splitext(file)[0]
+study3 = pd.concat([faculty_2, faculty_3, faculty_query2_1, faculty], ignore_index=True)
+study3.to_csv("data/study_3_faculty/study3.csv")
 
-        # Append dataframe and file name to the list
-        dfs.append(json_df)
+# Study 4
+aaron_rodgers = process_file('data/study_4_celebrity/aaron_rodgers.csv')
+armie_hammer = process_file('data/study_4_celebrity/armie_hammer.csv')
+dave_chappelle = process_file('data/study_4_celebrity/dave_chappelle.csv')
+ellen = process_file('data/study_4_celebrity/ellen.csv')
+james_charles = process_file('data/study_4_celebrity/james_charles.csv')
+kanye = process_file('data/study_4_celebrity/kanye.csv')
+r_kelly = process_file('data/study_4_celebrity/r_kelly.csv')
+shane_dawson = process_file('data/study_4_celebrity/shane_dawson.csv')
+travis_scott = process_file('data/study_4_celebrity/travis_scott.csv')
+dojacat = process_file('data/study_4_celebrity/dojacat.json')
+kanyewest = process_file('data/study_4_celebrity/kanyewest.json')
+lindsayellis = process_file('data/study_4_celebrity/lindsayellis.json')
+rkelly = process_file('data/study_4_celebrity/rkelly.json')
+will_smith_full = process_file('data/study_4_celebrity/will_smith_full.json')
 
-    # Concatenate all dataframes in the list
-    merged_df = pd.concat(dfs, axis=0, ignore_index=True, sort=False)
+study4 = pd.concat([aaron_rodgers, armie_hammer, dave_chappelle, ellen,
+                    james_charles, kanye, r_kelly, shane_dawson,
+                    travis_scott, dojacat, kanyewest, lindsayellis,
+                    rkelly, will_smith_full], ignore_index=True)
+study4.to_csv("data/study_4_celebrity/study4.csv")
 
-    return merged_df
+# Study 5
+AaronMSchlossberg = process_file('data/study_5_civilians/AaronMSchlossberg.csv')
+bbqbecky = process_file('data/study_5_civilians/bbqbecky.csv')
+PoolPatrolPaula = process_file('data/study_5_civilians/PoolPatrolPaula.csv')
+RhondaPolon = process_file('data/study_5_civilians/RhondaPolon.csv')
+bbqbeckyj = process_file('data/study_5_civilians/bbqbecky.json')
+justinesacco = process_file('data/study_5_civilians/justinesacco.json')
+permitpatty = process_file('data/study_5_civilians/permitpatty.json')
 
-merged_dataframe = merge_json_files(folder_path)
+study5 = pd.concat([AaronMSchlossberg, bbqbecky, PoolPatrolPaula, RhondaPolon,
+                    bbqbeckyj, justinesacco, permitpatty])
+study5.to_csv("data/study_5_civilians/study5.csv")
 
-############ Count Tweets per Category
-filename_counts = merged_dataframe['original_filename'].value_counts()
-filename_counts_df = pd.DataFrame({'original_filename': filename_counts.index, 'count': filename_counts.values})
-print(filename_counts_df)
+#-------------------------------------- CHUNK 10: MEANING EXTRACTION METHOD PREP --------------------------------------
 
-###############################
-# Examining the cleaned .csv files from R cleaning the tweets
-
-will_smith = pd.read_json("data/combined_json/will_smith_full.json")
-rkelly = pd.read_json("data/combined_json/rkelly.json")
-lindsayellis = pd.read_json("data/combined_json/lindsayellis.json")
-justinesacco = pd.read_json("data/combined_json/justinesacco.json")
-permitpatty = pd.read_json("data/combined_json/permitpatty.json")
-bbqbecky = pd.read_json("data/combined_json/bbqbecky.json")
-dojacat = pd.read_json("data/combined_json/dojacat.json")
-kanyewest = pd.read_json("data/combined_json/kanyewest.json")
-
-# Clean to filter out retweets
-
-
-###############################
 # MEANING EXTRACTION METHOD DATA PREP
 
 # Set word threshold: Filter tweets with <5 words
