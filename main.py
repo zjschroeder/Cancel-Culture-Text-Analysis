@@ -85,6 +85,7 @@ def pretokenization_cleaning(text):
     text = remove_stopwords(text)
     return text
 
+
 #------------------------------------------ CHUNK 4: TOKENIZATION ------------------------------------------
 
 def tokenize(text):
@@ -218,6 +219,8 @@ def process_file(file_path):
         return None
 
     # Apply the clean_tweets function
+    df = df[df['lang'] == 'en']
+
     df = clean_tweets(df)
 
     # Add a new column for the original filename without extension
