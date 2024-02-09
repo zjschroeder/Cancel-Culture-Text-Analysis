@@ -1,4 +1,4 @@
-#------------------------------------------------- CHUNK 1: IMPORT -------------------------------------------------
+# ------------------------------------------------- CHUNK 1: IMPORT -------------------------------------------------
 import pandas as pd
 from nltk.corpus import stopwords
 import nltk
@@ -6,22 +6,18 @@ import re
 from datetime import datetime
 import contractions
 import os
-import scikit-learn
-from scikit-learn.feature_extraction.text import CountVectorizer
-
-
+from sklearn.feature_extraction.text import CountVectorizer
 from nltk.tokenize import TweetTokenizer
 from nltk.stem import WordNetLemmatizer
 from nltk.corpus import wordnet
-nltk.download('punkt')
-nltk.download('wordnet')
-nltk.download('omw-1.4')
-nltk.download('averaged_perceptron_tagger')
 
-#------------------------------------------ CHUNK 2: FUNCTION TO MERGE JSONS ------------------------------------------
 
-folder_path = '/Users/zjschroeder/PycharmProjects/Cancel-Culture-Text-Analysis/data/combined_json'
+# nltk.download('punkt')
+# nltk.download('wordnet')
+# nltk.download('omw-1.4')
+# nltk.download('averaged_perceptron_tagger')
 
+# ------------------------------------------ CHUNK 2: FUNCTION TO MERGE JSONS ------------------------------------------
 def merge_json_files(folder_path):
     # Get a list of all JSON files in the specified folder
     json_files = [f for f in os.listdir(folder_path) if f.endswith('.json')]
@@ -47,36 +43,49 @@ def merge_json_files(folder_path):
 
     return merged_df
 
-#------------------------------------------ CHUNK 3: PRE-TOKEN DATA CLEANING ------------------------------------------
+
+# merge_json_path = '/Users/zjschroeder/PycharmProjects/Cancel-Culture-Text-Analysis/data/combined_json'
+# merged_jsons = merge_json_files(merge_json_path)
+# ------------------------------------------ CHUNK 3: PRE-TOKEN DATA CLEANING ------------------------------------------
 
 stop_words = set(stopwords.words('english'))
+
 
 def strg_list_to_list(strg_list):
     return strg_list.strip("[]").replace("'", "").replace('"', "").replace(",", "").split()
 
+
 def remove_retweet_label(text):
-    return re.sub('RT @[\w_]+:', '', text)
+    return re.sub('RT @[A-Za-z0-9_-]+:', '', text)
+
 
 def remove_video_label(text):
     return re.sub('VIDEO:', '', text)
 
+
 def remove_hyperlink(text):
     return re.sub(r'http\S+', '', text)  # r=raw \S=string
+
 
 def remove_twitterhandle(text):
     return re.sub('@[A-Za-z0-9_]+(:)?', '', text)
 
+
 def remove_escape_sequence(text):
     return re.sub(r'\n', '', text)
+
 
 def remove_extra_spaces(text):
     return re.sub(r"\s+", " ", text)
 
+
 def remove_contractions(text):
     return contractions.fix(text)
 
+
 def remove_stopwords(text):
     return " ".join([word for word in text.split() if word not in stop_words])
+
 
 def pretokenization_cleaning(text):
     text = remove_retweet_label(text)
@@ -90,31 +99,33 @@ def pretokenization_cleaning(text):
     return text
 
 
-#------------------------------------------ CHUNK 4: TOKENIZATION ------------------------------------------
+# ------------------------------------------ CHUNK 4: TOKENIZATION ------------------------------------------
 
 def tokenize(text):
     tknzr = TweetTokenizer(reduce_len=True)
     return tknzr.tokenize(text)
 
-#------------------------------------------ CHUNK 5: STEMMER FUNCTION ------------------------------------------
 
-def stemming(unkn_input):
-    porter = nltk.PorterStemmer()
-    if (isinstance(unkn_input, list)):
-        list_input = unkn_input
-    if (isinstance(unkn_input, str)):
-        list_input = strg_list_to_list(unkn_input)
-    list_stemmed = []
-    for word in list_input:
-        word = porter.stem(word)
-        list_stemmed.append(word)
-        # Two options for what to return:
-    # return " ".join(list_stemmed) #string
-    return list_stemmed  # list
+# ------------------------------------------ CHUNK 5: STEMMER FUNCTION ------------------------------------------
 
-#------------------------------------------ CHUNK 6: LEMMATIZER ------------------------------------------
+# def stemming(unkn_input):
+#     porter = nltk.PorterStemmer()
+#     if (isinstance(unkn_input, list)):
+#         stem_list_input = unkn_input
+#     if (isinstance(unkn_input, str)):
+#        stem_list_input = strg_list_to_list(unkn_input)
+#    list_stemmed = []
+#    for word in stem_list_input:
+#        word = porter.stem(word)
+#        list_stemmed.append(word)
+#        # Two options for what to return:
+#    # return " ".join(list_stemmed) #string
+#    return list_stemmed  # list
+
+# ------------------------------------------ CHUNK 6: LEMMATIZER ------------------------------------------
 
 lemmatizer = WordNetLemmatizer()
+
 
 def nltk_pos_tagger(nltk_tag):
     if nltk_tag.startswith('J'):
@@ -128,11 +139,14 @@ def nltk_pos_tagger(nltk_tag):
     else:
         return None
 
+
 def lemmatize(unkn_input):
-    if (isinstance(unkn_input, list)):
+    if isinstance(unkn_input, list):
         list_input = unkn_input
-    if (isinstance(unkn_input, str)):
+    elif isinstance(unkn_input, str):
         list_input = strg_list_to_list(unkn_input)
+    else:
+        list_input = strg_list_to_list("THIS IS AN ERROR")
     list_sentence = [item.lower() for item in list_input]
     nltk_tagged = nltk.pos_tag(list_sentence)
     wordnet_tagged = map(lambda x: (x[0], nltk_pos_tagger(x[1])), nltk_tagged)
@@ -145,30 +159,31 @@ def lemmatize(unkn_input):
         # " ".join(lemmatized_sentence)
     return lemmatized_sentence
 
-#------------------------------------------ CHUNK 7: POST-TOKEN CLEANING  ------------------------------------------
+
+# ------------------------------------------ CHUNK 7: POST-TOKEN CLEANING  ------------------------------------------
 def remove_punc(list_token):
     # print(list_token)
     def process(strg_token):
         strg_numb = '''0123456789'''
         strg_3dots = '...'
         strg_2dots = ".."
-        strg_punc = '''!()+-[]{}|;:'"\,<>./?@#$£%^&*_~“”…‘’'''
+        strg_punc = '''!()+-[]{}|;:'"\\,<>./?@#$£%^&*_~“”…‘’'''
         strg_output = ''
         # for idx, char in enumerate(strg_token):
         # print(item)
-        if (len(strg_token) == 0):  # empty char
+        if len(strg_token) == 0:  # empty char
             strg_output += ''
         else:
             if (all(char in strg_numb for char in strg_token) or
                     strg_token[0] in strg_numb):  # if char is a number
                 strg_output += ''
             else:
-                if (len(strg_token) == 1 and strg_token in strg_punc):  # if char is a single punc
+                if len(strg_token) == 1 and strg_token in strg_punc:  # if char is a single punc
                     strg_output += ''
                 else:
-                    if (strg_token[0] == '#'):  # if char is hashtag
+                    if strg_token[0] == '#':  # if char is hashtag
                         strg_output += strg_token.lower()
-                    elif (strg_token == strg_3dots or strg_token == strg_2dots):
+                    elif strg_token == strg_3dots or strg_token == strg_2dots:
                         strg_output += ''
                     else:  # other than above, char could be part of word,
                         # e.g key-in
@@ -178,33 +193,39 @@ def remove_punc(list_token):
     list_output = [process(token) for token in list_token]
     return list_output
 
+
 def remove_empty_item(list_item):
     token = [token for token in list_item if len(token) > 0]
     return token
 
+
 def lowercase_alpha(list_token):
     return [token.lower() if (token.isalpha() or token[0] == '#') else token for token in list_token]
 
+
 def posttokenization_cleaning(unkn_input):
     list_output = []
-    if (isinstance(unkn_input, list)):
+    if isinstance(unkn_input, list):
         list_output = unkn_input
-    if (isinstance(unkn_input, str)):
+    if isinstance(unkn_input, str):
         list_output = strg_list_to_list(unkn_input)
     list_output = remove_punc(list_output)
     list_output = remove_empty_item(list_output)
     # list_output=lowercase_alpha(list_output)
 
-    return (list_output)
+    return list_output
 
-#------------------------------------------ CHUNK 8: Full Function ------------------------------------------
+
+# ------------------------------------------ CHUNK 8: Full Function ------------------------------------------
 # Function to Clean Tweets
 def clean_tweets(df):
+    df['user_description'] = df['text'].astype(str)
     df['pretoken'] = df['text'].apply(pretokenization_cleaning)
     df['token'] = df['pretoken'].apply(tokenize)
     df['lemmatized'] = df['token'].apply(lemmatize)
     df['posttoken'] = df['lemmatized'].apply(posttokenization_cleaning)
-    return(df)
+    return df
+
 
 # Function to Clean Bios
 def clean_bios(df):
@@ -213,7 +234,7 @@ def clean_bios(df):
     df['token_bio'] = df['pretoken_bio'].apply(tokenize)
     df['lemmatized_bio'] = df['token_bio'].apply(lemmatize)
     df['posttoken_bio'] = df['lemmatized_bio'].apply(posttokenization_cleaning)
-    return(df)
+    return df
 
 
 # Function to process each file
@@ -223,14 +244,14 @@ def process_file(file_path):
 
     if file_extension == '.json':
         df = pd.read_json(file_path,
-                     dtype={'tweet_id': 'str',
-                            'text': 'str',
-                            'user_description': 'str'})
+                          dtype={'tweet_id': 'str',
+                                 'text': 'str',
+                                 'user_description': 'str'})
     elif file_extension == '.csv':
         df = pd.read_csv(file_path,
-                     dtype={'tweet_id': 'str',
-                            'text': 'str',
-                            'user_description': 'str'})
+                         dtype={'tweet_id': 'str',
+                                'text': 'str',
+                                'user_description': 'str'})
     else:
         # Skip files with unsupported extensions
         return None
@@ -238,18 +259,20 @@ def process_file(file_path):
     # Apply the clean_tweets function
     df = df[df['lang'] == 'en']
     df = clean_tweets(df)
-    # df = clean_bios(df) There seem to be errors with some of the bios, haven't figured out what is causing the problem yet
+    df = clean_bios(df)
+    # TODO: Fix the errors in string length for bios
     # Add a new column for the original filename without extension
     filename = os.path.splitext(os.path.basename(file_path))[0]
     df['original_filename'] = filename
 
     return df
 
-#------------------------------------------ CHUNK 9: Clean Datasets  ------------------------------------------
+
+# ------------------------------------------ CHUNK 9: Clean Datasets  ------------------------------------------
 
 # Study 1
 study1 = process_file("data/study_1_cancel_culture/raw_data/cc_full.csv")
-study1.to_csv("data/study_1_cancel_culture/study1_cleaned.csv", index = False)
+study1.to_csv("data/study_1_cancel_culture/study1_cleaned.csv", index=False)
 now = datetime.now()
 current_time = now.strftime("%H:%M:%S")
 print("Study 1 done at =", current_time)
@@ -258,10 +281,10 @@ print("Study 1 done at =", current_time)
 isover1 = process_file("data/study_2_isoverparty/isover1.csv")
 isover2 = process_file("data/study_2_isoverparty/isover2.csv")
 isoverparty = process_file("data/study_2_isoverparty/isoverparty.csv")
-# IS OVER PARTY HAS PROBLEMS, CAUSED ERROR
 # is_over = process_file("data/study_2_isoverparty/is_over.csv")
+# TODO: Identify error in is_over dataframe cleaning
 study2 = pd.concat([isover1, isover2, isoverparty], ignore_index=True)
-study2.to_csv("data/study_2_isoverparty/study2.csv", index = False)
+study2.to_csv("data/study_2_isoverparty/study2.csv", index=False)
 now = datetime.now()
 current_time = now.strftime("%H:%M:%S")
 print("Study 2 done at =", current_time)
@@ -281,12 +304,14 @@ print("Study 3 done at =", current_time)
 aaron_rodgers = process_file('data/study_4_celebrity/aaron_rodgers.csv')
 armie_hammer = process_file('data/study_4_celebrity/armie_hammer.csv')
 # dave_chappelle = process_file('data/study_4_celebrity/dave_chappelle.csv')
+# TODO: Fix error with string length in dave_chappelle
 ellen = process_file('data/study_4_celebrity/ellen.csv')
 james_charles = process_file('data/study_4_celebrity/james_charles.csv')
 kanye = process_file('data/study_4_celebrity/kanye.csv')
 r_kelly = process_file('data/study_4_celebrity/r_kelly.csv')
 shane_dawson = process_file('data/study_4_celebrity/shane_dawson.csv')
 # travis_scott = process_file('data/study_4_celebrity/travis_scott.csv')
+# TODO: Fix error in string length travis scott
 dojacat = process_file('data/study_4_celebrity/dojacat.json')
 kanyewest = process_file('data/study_4_celebrity/kanyewest.json')
 lindsayellis = process_file('data/study_4_celebrity/lindsayellis.json')
@@ -297,7 +322,6 @@ study4 = pd.concat([aaron_rodgers, armie_hammer, ellen,
                     shane_dawson, dojacat, kanyewest,
                     lindsayellis, rkelly, will_smith_full],
                    ignore_index=True)
-# dave_chappelle, travis_scott encounter errors
 study4.to_csv("data/study_4_celebrity/study4.csv")
 now = datetime.now()
 current_time = now.strftime("%H:%M:%S")
@@ -311,31 +335,35 @@ RhondaPolon = process_file('data/study_5_civilians/RhondaPolon.csv')
 # bbqbeckyj = process_file('data/study_5_civilians/bbqbecky.json')
 # justinesacco = process_file('data/study_5_civilians/justinesacco.json')
 # permitpatty = process_file('data/study_5_civilians/permitpatty.json')
+# TODO: All json files in study 5 encounter errors with string length
 study5 = pd.concat([AaronMSchlossberg, bbqbecky, PoolPatrolPaula, RhondaPolon])
-                    # bbqbeckyj, justinesacco, permitpatty
 study5.to_csv("data/study_5_civilians/study5.csv")
 now = datetime.now()
 current_time = now.strftime("%H:%M:%S")
 print("Study 5 done at =", current_time)
 
-#-------------------------------------- CHUNK 10: TERM DOCUMENT MATRIX --------------------------------------
+# -------------------------------------- CHUNK 10: TERM DOCUMENT MATRIX --------------------------------------
 
+test_df = pd.read_csv("data/study1.csv", nrows=100)
 # Count Vectorizer
 vect = CountVectorizer()
-vects = vect.fit_transform(doc.response)
+vects = vect.fit_transform(test_df.posttoken)
 
 # Select the first five rows from the data set
-td = pd.DataFrame(vects.todense()).iloc[:5]
-td.columns = vect.get_feature_names()
+td = pd.DataFrame(vects.todense())
+td.columns = vect.get_feature_names_out()
 term_document_matrix = td.T
-term_document_matrix.columns = ['Doc '+str(i) for i in range(1, 6)]
+term_document_matrix.columns = ['CC_tweet ' + str(i) for i in range(1, len(term_document_matrix.axes[1]) + 1)]
 term_document_matrix['total_count'] = term_document_matrix.sum(axis=1)
 
 # Top 25 words
-term_document_matrix = term_document_matrix.sort_values(by ='total_count',ascending=False)[:25]
+term_document_matrix = term_document_matrix.sort_values(by='total_count', ascending=False)[:25]
 
 # Print the first 10 rows
 print(term_document_matrix.drop(columns=['total_count']).head(10))
+
+# Quick Visualization
+term_document_matrix['total_count'].plot.bar()
 
 # MEANING EXTRACTION METHOD DATA PREP
 
@@ -346,4 +374,3 @@ print(term_document_matrix.drop(columns=['total_count']).head(10))
 # Create the matrix that is all tweets by all words binary 0/1
 
 # PCA
-
