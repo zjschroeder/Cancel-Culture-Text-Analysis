@@ -3,9 +3,13 @@ import pandas as pd
 from nltk.corpus import stopwords
 import nltk
 import re
-import csv
+from datetime import datetime
 import contractions
 import os
+import scikit-learn
+from scikit-learn.feature_extraction.text import CountVectorizer
+
+
 from nltk.tokenize import TweetTokenizer
 from nltk.stem import WordNetLemmatizer
 from nltk.corpus import wordnet
@@ -194,12 +198,23 @@ def posttokenization_cleaning(unkn_input):
     return (list_output)
 
 #------------------------------------------ CHUNK 8: Full Function ------------------------------------------
+# Function to Clean Tweets
 def clean_tweets(df):
     df['pretoken'] = df['text'].apply(pretokenization_cleaning)
-    df['token'] = df['text'].apply(tokenize)
+    df['token'] = df['pretoken'].apply(tokenize)
     df['lemmatized'] = df['token'].apply(lemmatize)
     df['posttoken'] = df['lemmatized'].apply(posttokenization_cleaning)
     return(df)
+
+# Function to Clean Bios
+def clean_bios(df):
+    df['user_description'] = df['user_description'].astype(str)
+    df['pretoken_bio'] = df['user_description'].apply(pretokenization_cleaning)
+    df['token_bio'] = df['pretoken_bio'].apply(tokenize)
+    df['lemmatized_bio'] = df['token_bio'].apply(lemmatize)
+    df['posttoken_bio'] = df['lemmatized_bio'].apply(posttokenization_cleaning)
+    return(df)
+
 
 # Function to process each file
 def process_file(file_path):
@@ -209,86 +224,118 @@ def process_file(file_path):
     if file_extension == '.json':
         df = pd.read_json(file_path,
                      dtype={'tweet_id': 'str',
-                            'text': 'str'})
+                            'text': 'str',
+                            'user_description': 'str'})
     elif file_extension == '.csv':
         df = pd.read_csv(file_path,
                      dtype={'tweet_id': 'str',
-                            'text': 'str'})
+                            'text': 'str',
+                            'user_description': 'str'})
     else:
         # Skip files with unsupported extensions
         return None
 
     # Apply the clean_tweets function
     df = df[df['lang'] == 'en']
-
     df = clean_tweets(df)
-
+    # df = clean_bios(df) There seem to be errors with some of the bios, haven't figured out what is causing the problem yet
     # Add a new column for the original filename without extension
     filename = os.path.splitext(os.path.basename(file_path))[0]
     df['original_filename'] = filename
 
     return df
 
-#------------------------------------------ CHUNK 9: Apply to Datasets  ------------------------------------------
+#------------------------------------------ CHUNK 9: Clean Datasets  ------------------------------------------
 
 # Study 1
-cc = clean_tweets("data/study_1_cancel_culture/raw_data/cc_full.csv")
-cc.to_csv("data/study_1_cancel_culture/study1_cleaned.csv", index = False)
+study1 = process_file("data/study_1_cancel_culture/raw_data/cc_full.csv")
+study1.to_csv("data/study_1_cancel_culture/study1_cleaned.csv", index = False)
+now = datetime.now()
+current_time = now.strftime("%H:%M:%S")
+print("Study 1 done at =", current_time)
 
 # Study 2
 isover1 = process_file("data/study_2_isoverparty/isover1.csv")
 isover2 = process_file("data/study_2_isoverparty/isover2.csv")
 isoverparty = process_file("data/study_2_isoverparty/isoverparty.csv")
-is_over = process_file("data/study_2_isoverparty/is_over.csv")
-
+# IS OVER PARTY HAS PROBLEMS, CAUSED ERROR
+# is_over = process_file("data/study_2_isoverparty/is_over.csv")
 study2 = pd.concat([isover1, isover2, isoverparty], ignore_index=True)
 study2.to_csv("data/study_2_isoverparty/study2.csv", index = False)
+now = datetime.now()
+current_time = now.strftime("%H:%M:%S")
+print("Study 2 done at =", current_time)
 
 # Study 3
 faculty_2 = process_file("data/study_3_faculty/faculty_2.csv")
 faculty_3 = process_file("data/study_3_faculty/faculty_3.csv")
 faculty_query2_1 = process_file("data/study_3_faculty/faculty_query2_1.csv")
 faculty = process_file("data/study_3_faculty/faculty.csv")
-
 study3 = pd.concat([faculty_2, faculty_3, faculty_query2_1, faculty], ignore_index=True)
 study3.to_csv("data/study_3_faculty/study3.csv")
+now = datetime.now()
+current_time = now.strftime("%H:%M:%S")
+print("Study 3 done at =", current_time)
 
 # Study 4
 aaron_rodgers = process_file('data/study_4_celebrity/aaron_rodgers.csv')
 armie_hammer = process_file('data/study_4_celebrity/armie_hammer.csv')
-dave_chappelle = process_file('data/study_4_celebrity/dave_chappelle.csv')
+# dave_chappelle = process_file('data/study_4_celebrity/dave_chappelle.csv')
 ellen = process_file('data/study_4_celebrity/ellen.csv')
 james_charles = process_file('data/study_4_celebrity/james_charles.csv')
 kanye = process_file('data/study_4_celebrity/kanye.csv')
 r_kelly = process_file('data/study_4_celebrity/r_kelly.csv')
 shane_dawson = process_file('data/study_4_celebrity/shane_dawson.csv')
-travis_scott = process_file('data/study_4_celebrity/travis_scott.csv')
+# travis_scott = process_file('data/study_4_celebrity/travis_scott.csv')
 dojacat = process_file('data/study_4_celebrity/dojacat.json')
 kanyewest = process_file('data/study_4_celebrity/kanyewest.json')
 lindsayellis = process_file('data/study_4_celebrity/lindsayellis.json')
 rkelly = process_file('data/study_4_celebrity/rkelly.json')
 will_smith_full = process_file('data/study_4_celebrity/will_smith_full.json')
-
-study4 = pd.concat([aaron_rodgers, armie_hammer, dave_chappelle, ellen,
-                    james_charles, kanye, r_kelly, shane_dawson,
-                    travis_scott, dojacat, kanyewest, lindsayellis,
-                    rkelly, will_smith_full], ignore_index=True)
+study4 = pd.concat([aaron_rodgers, armie_hammer, ellen,
+                    james_charles, kanye, r_kelly,
+                    shane_dawson, dojacat, kanyewest,
+                    lindsayellis, rkelly, will_smith_full],
+                   ignore_index=True)
+# dave_chappelle, travis_scott encounter errors
 study4.to_csv("data/study_4_celebrity/study4.csv")
+now = datetime.now()
+current_time = now.strftime("%H:%M:%S")
+print("Study 4 done at =", current_time)
 
 # Study 5
 AaronMSchlossberg = process_file('data/study_5_civilians/AaronMSchlossberg.csv')
 bbqbecky = process_file('data/study_5_civilians/bbqbecky.csv')
 PoolPatrolPaula = process_file('data/study_5_civilians/PoolPatrolPaula.csv')
 RhondaPolon = process_file('data/study_5_civilians/RhondaPolon.csv')
-bbqbeckyj = process_file('data/study_5_civilians/bbqbecky.json')
-justinesacco = process_file('data/study_5_civilians/justinesacco.json')
-permitpatty = process_file('data/study_5_civilians/permitpatty.json')
-
-study5 = pd.concat([AaronMSchlossberg, bbqbecky, PoolPatrolPaula, RhondaPolon,
-                    bbqbeckyj, justinesacco, permitpatty])
+# bbqbeckyj = process_file('data/study_5_civilians/bbqbecky.json')
+# justinesacco = process_file('data/study_5_civilians/justinesacco.json')
+# permitpatty = process_file('data/study_5_civilians/permitpatty.json')
+study5 = pd.concat([AaronMSchlossberg, bbqbecky, PoolPatrolPaula, RhondaPolon])
+                    # bbqbeckyj, justinesacco, permitpatty
 study5.to_csv("data/study_5_civilians/study5.csv")
+now = datetime.now()
+current_time = now.strftime("%H:%M:%S")
+print("Study 5 done at =", current_time)
 
-#-------------------------------------- CHUNK 10: MEANING EXTRACTION METHOD PREP --------------------------------------
+#-------------------------------------- CHUNK 10: TERM DOCUMENT MATRIX --------------------------------------
+
+# Count Vectorizer
+vect = CountVectorizer()
+vects = vect.fit_transform(doc.response)
+
+# Select the first five rows from the data set
+td = pd.DataFrame(vects.todense()).iloc[:5]
+td.columns = vect.get_feature_names()
+term_document_matrix = td.T
+term_document_matrix.columns = ['Doc '+str(i) for i in range(1, 6)]
+term_document_matrix['total_count'] = term_document_matrix.sum(axis=1)
+
+# Top 25 words
+term_document_matrix = term_document_matrix.sort_values(by ='total_count',ascending=False)[:25]
+
+# Print the first 10 rows
+print(term_document_matrix.drop(columns=['total_count']).head(10))
 
 # MEANING EXTRACTION METHOD DATA PREP
 
