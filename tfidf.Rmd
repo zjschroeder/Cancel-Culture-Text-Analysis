@@ -1,0 +1,238 @@
+---
+title: 'Scientific Reports - Self Presentation in Twitter Bios: Replication Code'
+author: "Liam Essig"
+date: "2023-10-25"
+output: html_document
+editor_options: 
+  chunk_output_type: console
+---
+
+# Adaptation from Essig and DellaPosta (2024)
+
+IN this adaptation of the work, I will (1) replicate their findings in my own data. This will be done using the following steps:
+
+1) Filtering english and USA timezones
+2) Applying the python cleaning algorithm/code I used above to lemmatize
+3) Create my own cosine similarity matrix
+4) *Somehow* figure out how to translate the cosine similarity matrix into a coding scheme to generate numerical values of the terms both identified by Essig and DellaPosta *and* update for more recent terms.
+5) These numerical values then should be able to give me a continuous rating of political affiliation based on the semantic similarity with words that appear in bios of identifiable members of political parties (i.e., neural networks)
+
+With political affiliation, I'll be able to identify how the different sides of Twitter differ (or are similar) in how they discuss cancel culture. 
+
+
+#Term Network
+```{r}
+###############################################################################################
+#PRE-PROCESSING DATA & CODE: The data and code in this section are conducted to produce the TFIDF file that will be available for replication data. The pre-processing data used in this section will NOT be made publicly available (per Twitter/X restrictions on data sharing), but we have made the code available. 
+###############################################################################################
+library(quanteda)
+library(tidyverse)
+library(quanteda.textstats)
+library(igraph)
+
+twitterdata = read.csv(here::here("data/study1.csv"), nrows = 1000) %>% 
+  mutate(
+    posttoken = gsub("[[:punct:]]", "", posttoken)
+  )
+
+terms_corp <- corpus(twitterdata, text_field = "posttoken") %>% tokens()
+terms_Dfm <- dfm(terms_corp, verbose = FALSE) 
+terms_Dfm2<- dfm_trim(terms_Dfm, min_docfreq = 0.001, docfreq_type = "prop")
+terms_Dfm3 <- dfm_subset(terms_Dfm2, ntoken(terms_Dfm2) > 0) 
+data_terms_clean <- dfm_tfidf(terms_Dfm3)
+terms_cosine <- textstat_simil(data_terms_clean, margin = "features", method = "cosine")
+terms_g <- graph_from_adjacency_matrix(as.matrix(terms_cosine), mode = "undirected", weighted = TRUE, diag = FALSE) 
+```
+
+
+# Partisan Network
+```{r}
+###############################################################################################
+#PRE-PROCESSING DATA & CODE: The data and code in this section are conducted to produce the TFIDF file that will be available for replication data. The pre-processing data used in this section will NOT be made publicly available (per Twitter/X restrictions on data sharing), but we have made the code available. 
+###############################################################################################
+library(quanteda)
+#data wrangling
+ partisan_corp <- corpus(data_partisans, text_field = "text2") #dataframe to corpus
+ partisan_Dfm <- dfm(partisan_corp, verbose = FALSE) #corpus to dfm
+ partisan_Dfm <- dfm_subset(partisan_Dfm, ntoken(partisan_Dfm) > 0) #remove empty documents
+ data_partisans_clean <- dfm_tfidf(partisan_Dfm)
+
+library(quanteda.textstats)
+library(igraph)
+library(dplyr)
+ 
+ #load TF-IDF file
+ # load("replicationdata_partisans.RData")
+        
+#compute cosine similarity matrix 
+ partisans_cosine <- textstat_simil(data_partisans_clean, margin = "documents", method = "cosine")
+
+#igraph object
+partisans_g <- graph_from_adjacency_matrix(as.matrix(partisans_cosine), mode = "undirected", weighted = TRUE, diag = FALSE)
+partisans_g2 <- delete.edges(partisans_g, which(E(partisans_g)$weight <.2)) #remove low weights
+E(partisans_g2)$weight <- 1 #binarize data
+Isolated <- which(degree(partisans_g2)==0) #identify isolated nodes
+partisans_g3 <- delete.vertices(partisans_g2, Isolated) #remove isolated nodes
+          
+#add partisan node attributes 
+    df <- igraph::as_data_frame(partisans_g3, 'both')
+    df$vertices <- df$vertices %>% 
+      left_join(data_partisans, c('name'='Id'))
+    partisans_g4 <- graph_from_data_frame(df$edges,
+                                       directed = F,
+                                       vertices = df$vertices)
+    table(V(partisans_g4)$party)
+        #11073 total, 4655 conservatives, 464 neutrals, and 5954 liberals
+    
+
+#calculate partisan modularity   
+  modularity(partisans_g4, factor(V(partisans_g4)$party))
+```
+
+
+#Term Scatterplot
+```{r}
+###############################################################################################
+#PRE-PROCESSING DATA & CODE: The data and code in this section are conducted to produce the TFIDF file that will be available for replication data. The pre-processing data used in this section will NOT be made publicly available (per Twitter/X restrictions on data sharing), but we have made the code available. 
+###############################################################################################
+library(ggplot2)
+library(ggrepel)
+
+##### #load data
+##### load("data_scatterplot_preprocess.RData")
+##### 
+##### #Data Preprocessing
+##### twit_corp<- corpus(data_scatterplot, text_field = "text3")
+#####   scatter_dfm <- dfm(twit_corp, verbose = FALSE)
+#####         scatter_dfm <- dfm_trim(scatter_dfm, min_docfreq = 0.001, docfreq_type = "prop")
+#####         scatter_dfm <- dfm_subset(scatter_dfm, ntoken(scatter_dfm) > 0)
+#####         scatter_TFIDF <- dfm_tfidf(scatter_dfm)
+#####         
+##### #compute partisan cosines
+#####     scatter_COSliber <- as.data.frame(textstat_simil(scatter_TFIDF, scatter_TFIDF[, c("liber")], ##### method = "cosine", margin = "features")) 
+#####     scatter_COSconserv <- as.data.frame(textstat_simil(scatter_TFIDF, scatter_TFIDF[, ##### c("conserv")], method = "cosine", margin = "features")) 
+##### 
+##### #liberal cosines
+##### COSlib <- subset(scatter_COSliber, select = c("feature1", "cosine"))
+##### COSlib$libcos <- COSlib$cosine
+##### COSlib <- subset(COSlib, select = c("feature1", "libcos"))
+##### COSlib <- COSlib[order(COSlib$libcos, decreasing = TRUE),]
+##### COSlib <- COSlib[0:110,]
+##### COSlib <- subset(COSlib, feature1!="conserv")
+##### 
+##### #conservative cosines
+##### COScon <- subset(scatter_COSconserv, select = c("feature1", "cosine"))
+##### COScon$concos <- COScon$cosine
+##### COScon <- subset(COScon, select = c("feature1", "concos"))
+##### COScon <- COScon[order(COScon$concos, decreasing = TRUE),]
+##### COScon <- COScon[0:110,]
+##### COScon <- subset(COScon,feature1!='liber' )
+##### 
+##### 
+##### COSall <- full_join(COSlib, COScon)
+##### COSall["libcos"][is.na(COSall["libcos"])] <- 0
+##### COSall["concos"][is.na(COSall["concos"])] <- 0
+##### COSall$partisanlean <- (COSall$concos - COSall$libcos)
+##### COSall_collapsed <- COSall %>%
+#####   mutate(party = case_when(partisanlean < 0 ~ 'Liberal',
+#####                            partisanlean > 0 ~ 'Conservative'))
+##### COSall_collapsed <- COSall_collapsed[!grepl("behind", COSall_collapsed$feature1),]
+##### COSall_collapsed <- COSall_collapsed[!grepl("er", COSall_collapsed$feature1),]
+##### 
+##### data_scatter <- COSall_collapsed
+##### 
+##### save(data_scatter, file = "replicationdata_scatterplot.RData")
+##### 
+
+###############################################################################################
+#REPLICATION DATA: The data and code for this section are available for study replication.
+###############################################################################################
+load("replicationdata_scatterplot.RData")
+
+#For plot
+    mid <- mean(data_scatter$partisanlean)
+
+#scatterplot
+    LIBandCONSERV <- ggplot(data_scatter, aes(x = libcos , y = concos, label = rownames(feature1))) + geom_abline(intercept = 0, slope = 1) + 
+      geom_label_repel(size =6, aes(color = partisanlean, label=feature1, hjust=0, vjust=0), data=data_scatter, max.overlaps = getOption("ggrepel.max.overlaps", default = 100), segment.size = 0, label.padding = .3, box.padding = .3, point.padding = .5, force = 2) + scale_color_gradient2(midpoint = mid, low = "navyblue", mid = "grey50", high = "darkred", space = "Lab" )
+    
+       #change background color
+    test <- LIBandCONSERV + theme(legend.position = "none",
+      panel.background = element_rect(fill = "white",colour = "white", size = 0.5, linetype = "solid"),
+      panel.grid.major = element_line(size = 0.5, linetype = 'solid',colour = "gray90"), 
+      panel.grid.minor = element_line(size = 0.25, linetype = 'solid', colour = "gray90"),
+      axis.title.x = element_text(size = 20), axis.title.y = element_text(size = 20),plot.title = element_text(size = 25),
+      axis.text.x = element_text(size=14),
+      axis.text.y = element_text(size=14)) + 
+  scale_x_continuous(limits = c(-.06, .2), n.breaks = 6) + 
+  scale_y_continuous(limits = c(-.06, .28), n.breaks = 6) +
+  xlab("Liberal Cosine Value") + ylab("Conservative Cosine Value")
+```
+
+# Term Heat Map
+```{r}
+###############################################################################################
+#REPLICATION DATA: The data and code for this section are available for study replication.
+###############################################################################################
+library(pheatmap)
+library(RColorBrewer)
+library(viridis)
+
+#load data
+    load("replicationdata_heatmap.RData")
+
+#cosine Similarity matrix
+ test_cosine <- textstat_simil(heat_TFIDF, margin = "features", method = "cosine") #correlation
+ test_corr <- textstat_simil(heat_TFIDF, margin = "features", method = "correlation") #cosine
+ cos_mat <- as.matrix(test_cosine)
+ corr_mat <- as.matrix(test_corr)
+
+#heatmap
+pheatmap(cos_mat, display_numbers = TRUE, cluster_rows = FALSE, cluster_cols = FALSE)
+cosmap <- pheatmap(cos_mat, display_numbers = TRUE, cluster_rows = FALSE, cluster_cols = FALSE)
+corrmap <- pheatmap(corr_mat, display_numbers = TRUE, cluster_rows = FALSE, cluster_cols = FALSE)
+
+
+quantile_breaks <- function(xs, n = 10) {
+  breaks <- quantile(xs, probs = seq(0, 1, length.out = n))
+  breaks[!duplicated(breaks)]
+}
+
+mat_breaks <- quantile_breaks(corr_mat)
+
+corrmap_quant <- pheatmap(
+  mat               = corr_mat,
+  color             = turbo(length(mat_breaks) - 1),
+  breaks            = mat_breaks,
+  border_color      = NA,
+  show_colnames     = TRUE,
+  show_rownames     = TRUE,
+  drop_levels       = TRUE,
+  cluster_rows      = FALSE, 
+  cluster_cols      = FALSE,
+  fontsize          = 14,
+  main              = "Quantile Correlation Values"
+)
+
+
+mat_breaks <- quantile_breaks(cos_mat)
+
+cosmap_quant <- pheatmap(
+  mat               = cos_mat,
+  color             = turbo(length(mat_breaks) - 1),
+  breaks            = mat_breaks,
+  border_color      = NA,
+  show_colnames     = TRUE,
+  show_rownames     = TRUE,
+  drop_levels       = TRUE,
+  cluster_rows      = FALSE, 
+  cluster_cols      = FALSE,
+  fontsize          = 14,
+  main              = "Quantile - Cosine Values"
+)
+```
+
+
+
+
+
