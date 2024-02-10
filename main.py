@@ -1,23 +1,16 @@
 # ------------------------------------------------- CHUNK 1: IMPORT -------------------------------------------------
-import string # Error
+import string
 import pandas as pd
-from nltk.corpus import stopwords
 import nltk
 import re
 from datetime import datetime
 import contractions
 import os
 import logging
-from sklearn.preprocessing import MultiLabelBinarizer
 from nltk.tokenize import TweetTokenizer
 from nltk.stem import WordNetLemmatizer
 from nltk.corpus import wordnet
-
-
-# nltk.download('punkt')
-# nltk.download('wordnet')
-# nltk.download('omw-1.4')
-# nltk.download('averaged_perceptron_tagger')
+from nltk.corpus import stopwords
 
 # ------------------------------------------ CHUNK 2: FUNCTION TO MERGE JSONS ------------------------------------------
 def merge_json_files(folder_path):
@@ -295,15 +288,7 @@ def process_file(file_path):
 
     return df
 
-# ------------------------------------------ CHUNK 9: Document Term Matrix Functions  ---------------------------
-def dtm(df, column):
-    count_vec = MultiLabelBinarizer()
-    mlb = count_vec.fit(df[column])
-    term_document_matrix = pd.DataFrame(mlb.transform(df[column]), columns=[mlb.classes_])
-    return term_document_matrix
-
-
-# ------------------------------------------ CHUNK 10: Clean Datasets  ------------------------------------------
+# ------------------------------------------ CHUNK 9: Clean Datasets ---------------------------
 # Mark start time
 now = datetime.now()
 current_time = now.strftime("%H:%M:%S")
@@ -314,10 +299,7 @@ print("Began processing Study 1 at =", current_time)
 study1 = process_file("data/study_1_cancel_culture/raw_data/cc_full.csv")
 study1.to_csv("data/study_1_cancel_culture/study1_cleaned.csv", index=False)
 # Document Term Matrices
-study1_dtm_tweets = dtm(study1, "posttoken")
-study1_dtm_tweets.to_csv("data/study_1_cancel_culture/study1_dtm_tweets.csv", index=False)
-study1_dtm_bio = dtm(study1, "posttoken_bio")
-study1_dtm_bio.to_csv("data/study_1_cancel_culture/study1_dtm_bio.csv", index=False)
+
 # Mark time
 now = datetime.now()
 current_time = now.strftime("%H:%M:%S")
@@ -331,10 +313,7 @@ isoverparty = process_file("data/study_2_isoverparty/isoverparty.csv")
 study2 = pd.concat([isover1, isover2, isoverparty], ignore_index=True)
 study2.to_csv("data/study_2_isoverparty/study2.csv", index=False)
 # Document term matrices
-study2_dtm_tweets = dtm(study2, "posttoken")
-study2_dtm_tweets.to_csv("data/study_2_isoverparty/study2_dtm_tweets.csv", index=False)
-study2_dtm_bio = dtm(study2, "posttoken_bio")
-study2_dtm_bio.to_csv("data/study_2_isoverparty/study2_dtm_bio.csv", index=False)
+
 # Mark completion time
 now = datetime.now()
 current_time = now.strftime("%H:%M:%S")
@@ -349,10 +328,7 @@ faculty = process_file("data/study_3_faculty/faculty.csv")
 study3 = pd.concat([faculty_2, faculty_3, faculty_query2_1, faculty], ignore_index=True)
 study3.to_csv("data/study_3_faculty/study3.csv")
 # Document term matrices
-study3_dtm_tweets = dtm(study3, "posttoken")
-study3_dtm_tweets.to_csv("data/study_3_faculty/study3_dtm_tweets.csv", index=False)
-study3_dtm_bio = dtm(study3, "posttoken_bio")
-study3_dtm_bio.to_csv("data/study_3_faculty/study3_dtm_bio.csv", index=False)
+
 # Mark completion time
 now = datetime.now()
 current_time = now.strftime("%H:%M:%S")
@@ -380,11 +356,7 @@ study4 = pd.concat([aaron_rodgers, armie_hammer, ellen,
                     lindsayellis, rkelly, will_smith_full, dave_chappelle, travis_scott],
                    ignore_index=True)
 study4.to_csv("data/study_4_celebrity/study4.csv")
-# Document term matrices
-study4_dtm_tweets = dtm(study4, "posttoken")
-study4_dtm_tweets.to_csv("data/study_4_celebrity/study4_dtm_tweets.csv", index=False)
-study4_dtm_bio = dtm(study4, "posttoken_bio")
-study4_dtm_bio.to_csv("data/study_4_celebrity/study4_dtm_bio.csv", index=False)
+
 # Mark completion time
 now = datetime.now()
 current_time = now.strftime("%H:%M:%S")
@@ -401,11 +373,7 @@ justinesacco = process_file('data/study_5_civilians/justinesacco.json')
 permitpatty = process_file('data/study_5_civilians/permitpatty.json')
 study5 = pd.concat([AaronMSchlossberg, bbqbecky, PoolPatrolPaula, RhondaPolon, bbqbeckyj, justinesacco, permitpatty])
 study5.to_csv("data/study_5_civilians/study5.csv")
-# Document term matrices
-study5_dtm_tweets = dtm(study5, "posttoken")
-study5_dtm_tweets.to_csv("data/study_5_civilians/study5_dtm_tweets.csv", index=False)
-study5_dtm_bio = dtm(study5, "posttoken_bio")
-study5_dtm_bio.to_csv("data/study_5_civilians/study5_dtm_bio.csv", index=False)
+
 now = datetime.now()
 current_time = now.strftime("%H:%M:%S")
 print("Study 5 done at =", current_time)
@@ -413,11 +381,8 @@ print("Study 5 done at =", current_time)
 # Study 2.5 Is Over
 is_over = process_file("data/study_2_isoverparty/is_over.csv")
 is_over.to_csv("data/study_2_isoverparty/is_over_clean.csv")
-is_over_dtm_tweets = dtm(is_over, "posttoken")
-is_over_dtm_bio = dtm(is_over, "posttoken_bio")
-is_over_dtm_tweets.to_csv("data/study_2_isoverparty/is_over_dtm_tweets.csv", index=False)
-is_over_dtm_bio.to_csv("data/study_2_isoverparty/is_over_dtm_bio.csv", index=False)
 
 now = datetime.now()
 current_time = now.strftime("%H:%M:%S")
 print("Is Over done at =", current_time)
+
