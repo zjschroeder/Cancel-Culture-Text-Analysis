@@ -7,24 +7,11 @@ editor_options:
   chunk_output_type: console
 ---
 
-# Adaptation from Essig and DellaPosta (2024)
+> Adaptation from Essig and DellaPosta (2024)
 
-IN this adaptation of the work, I will (1) replicate their findings in my own data. This will be done using the following steps:
+# Term Network
 
-1) Filtering english and USA timezones
-2) Applying the python cleaning algorithm/code I used above to lemmatize
-3) Create my own cosine similarity matrix
-4) *Somehow* figure out how to translate the cosine similarity matrix into a coding scheme to generate numerical values of the terms both identified by Essig and DellaPosta *and* update for more recent terms.
-5) These numerical values then should be able to give me a continuous rating of political affiliation based on the semantic similarity with words that appear in bios of identifiable members of political parties (i.e., neural networks)
-
-With political affiliation, I'll be able to identify how the different sides of Twitter differ (or are similar) in how they discuss cancel culture. 
-
-
-#Term Network
 ```{r}
-###############################################################################################
-#PRE-PROCESSING DATA & CODE: The data and code in this section are conducted to produce the TFIDF file that will be available for replication data. The pre-processing data used in this section will NOT be made publicly available (per Twitter/X restrictions on data sharing), but we have made the code available. 
-###############################################################################################
 library(quanteda)
 library(tidyverse)
 library(quanteda.textstats)
@@ -136,51 +123,51 @@ partisans_g3 <- delete.vertices(partisans_g2, Isolated) #remove isolated nodes
 #PRE-PROCESSING DATA & CODE: The data and code in this section are conducted to produce the TFIDF file that will be available for replication data. The pre-processing data used in this section will NOT be made publicly available (per Twitter/X restrictions on data sharing), but we have made the code available. 
 ###############################################################################################
 
-##### #load data
-##### load("data_scatterplot_preprocess.RData")
-##### 
-##### #Data Preprocessing
-##### twit_corp<- corpus(data_scatterplot, text_field = "text3")
-#####   scatter_dfm <- dfm(twit_corp, verbose = FALSE)
-#####         scatter_dfm <- dfm_trim(scatter_dfm, min_docfreq = 0.001, docfreq_type = "prop")
-#####         scatter_dfm <- dfm_subset(scatter_dfm, ntoken(scatter_dfm) > 0)
-#####         scatter_TFIDF <- dfm_tfidf(scatter_dfm)
-#####         
-##### #compute partisan cosines
-#####     scatter_COSliber <- as.data.frame(textstat_simil(scatter_TFIDF, scatter_TFIDF[, c("liber")], ##### method = "cosine", margin = "features")) 
-#####     scatter_COSconserv <- as.data.frame(textstat_simil(scatter_TFIDF, scatter_TFIDF[, ##### c("conserv")], method = "cosine", margin = "features")) 
-##### 
-##### #liberal cosines
-##### COSlib <- subset(scatter_COSliber, select = c("feature1", "cosine"))
-##### COSlib$libcos <- COSlib$cosine
-##### COSlib <- subset(COSlib, select = c("feature1", "libcos"))
-##### COSlib <- COSlib[order(COSlib$libcos, decreasing = TRUE),]
-##### COSlib <- COSlib[0:110,]
-##### COSlib <- subset(COSlib, feature1!="conserv")
-##### 
-##### #conservative cosines
-##### COScon <- subset(scatter_COSconserv, select = c("feature1", "cosine"))
-##### COScon$concos <- COScon$cosine
-##### COScon <- subset(COScon, select = c("feature1", "concos"))
-##### COScon <- COScon[order(COScon$concos, decreasing = TRUE),]
-##### COScon <- COScon[0:110,]
-##### COScon <- subset(COScon,feature1!='liber' )
-##### 
-##### 
-##### COSall <- full_join(COSlib, COScon)
-##### COSall["libcos"][is.na(COSall["libcos"])] <- 0
-##### COSall["concos"][is.na(COSall["concos"])] <- 0
-##### COSall$partisanlean <- (COSall$concos - COSall$libcos)
-##### COSall_collapsed <- COSall %>%
-#####   mutate(party = case_when(partisanlean < 0 ~ 'Liberal',
-#####                            partisanlean > 0 ~ 'Conservative'))
-##### COSall_collapsed <- COSall_collapsed[!grepl("behind", COSall_collapsed$feature1),]
-##### COSall_collapsed <- COSall_collapsed[!grepl("er", COSall_collapsed$feature1),]
-##### 
-##### data_scatter <- COSall_collapsed
-##### 
-##### save(data_scatter, file = "replicationdata_scatterplot.RData")
-##### 
+#load data
+load("data_scatterplot_preprocess.RData")
+
+#Data Preprocessing
+twit_corp<- corpus(data_scatterplot, text_field = "text3")
+  scatter_dfm <- dfm(twit_corp, verbose = FALSE)
+        scatter_dfm <- dfm_trim(scatter_dfm, min_docfreq = 0.001, docfreq_type = "prop")
+        scatter_dfm <- dfm_subset(scatter_dfm, ntoken(scatter_dfm) > 0)
+        scatter_TFIDF <- dfm_tfidf(scatter_dfm)
+        
+#compute partisan cosines
+    scatter_COSliber <- as.data.frame(textstat_simil(scatter_TFIDF, scatter_TFIDF[, c("liber")], method = "cosine", margin = "features")) 
+    scatter_COSconserv <- as.data.frame(textstat_simil(scatter_TFIDF, scatter_TFIDF[, c("conserv")], method = "cosine", margin = "features")) 
+
+#liberal cosines
+COSlib <- subset(scatter_COSliber, select = c("feature1", "cosine"))
+COSlib$libcos <- COSlib$cosine
+COSlib <- subset(COSlib, select = c("feature1", "libcos"))  
+COSlib <- COSlib[order(COSlib$libcos, decreasing = TRUE),]  
+COSlib <- COSlib[0:110,]  
+COSlib <- subset(COSlib, feature1!="conserv")  
+
+#conservative cosines
+COScon <- subset(scatter_COSconserv, select = c("feature1", "cosine"))
+COScon$concos <- COScon$cosine
+COScon <- subset(COScon, select = c("feature1", "concos"))
+COScon <- COScon[order(COScon$concos, decreasing = TRUE),]
+COScon <- COScon[0:110,]
+COScon <- subset(COScon,feature1!='liber' )
+
+
+COSall <- full_join(COSlib, COScon)
+COSall["libcos"][is.na(COSall["libcos"])] <- 0
+COSall["concos"][is.na(COSall["concos"])] <- 0
+COSall$partisanlean <- (COSall$concos - COSall$libcos)
+COSall_collapsed <- COSall %>%
+  mutate(party = case_when(partisanlean < 0 ~ 'Liberal',
+                           partisanlean > 0 ~ 'Conservative'))
+COSall_collapsed <- COSall_collapsed[!grepl("behind", COSall_collapsed$feature1),]
+COSall_collapsed <- COSall_collapsed[!grepl("er", COSall_collapsed$feature1),]
+
+data_scatter <- COSall_collapsed
+
+save(data_scatter, file = "replicationdata_scatterplot.RData")
+
 
 ###############################################################################################
 #REPLICATION DATA: The data and code for this section are available for study replication.
