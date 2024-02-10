@@ -1,4 +1,5 @@
 # ------------------------------------------------- CHUNK 1: IMPORT -------------------------------------------------
+import string # Error
 import pandas as pd
 from nltk.corpus import stopwords
 import nltk
@@ -6,7 +7,8 @@ import re
 from datetime import datetime
 import contractions
 import os
-from sklearn.feature_extraction.text import CountVectorizer
+import logging
+from sklearn.preprocessing import MultiLabelBinarizer
 from nltk.tokenize import TweetTokenizer
 from nltk.stem import WordNetLemmatizer
 from nltk.corpus import wordnet
@@ -46,6 +48,28 @@ def merge_json_files(folder_path):
 
 # merge_json_path = '/Users/zjschroeder/PycharmProjects/Cancel-Culture-Text-Analysis/data/combined_json'
 # merged_jsons = merge_json_files(merge_json_path)
+
+# Function to fix and unnest json files
+
+def jsons_to_csv(path):
+    df1 = pd.read_json(path)
+    df2 = pd.DataFrame(df1['author'].apply(pd.Series)).add_prefix('user_')
+    df3 = pd.DataFrame(df2['user_public_metrics'].apply(pd.Series)).add_prefix('user_')
+    df4 = pd.json_normalize(df1['public_metrics'])
+    df1 = df1[
+        ['id', 'text', 'created_at', 'possibly_sensitive', 'conversation_id', 'lang', 'author_id', 'referenced_tweets']]
+    df1 = df1.rename(columns={"id": "tweet_id"})
+    df2 = df2[['user_username', 'user_verified', 'user_name', 'user_protected', 'user_description', 'user_created_at',
+               'user_url',
+               'user_pinned_tweet_id', 'user_location']]
+    df3 = df3[['user_tweet_count', 'user_listed_count', 'user_followers_count', 'user_following_count']]
+    df3 = df3.rename(columns={"user_listed_count": "user_list_count"})
+    df4 = df4[['retweet_count', 'like_count', 'quote_count', 'reply_count']]
+
+    df6 = pd.concat([df1, df2, df3, df4], axis=1)
+    return df6
+
+
 # ------------------------------------------ CHUNK 3: PRE-TOKEN DATA CLEANING ------------------------------------------
 
 stop_words = set(stopwords.words('english'))
@@ -80,7 +104,14 @@ def remove_extra_spaces(text):
 
 
 def remove_contractions(text):
-    return contractions.fix(text)
+    try:
+        logging.debug("Input text before removing contractions: %s", text)
+        cleaned_text = contractions.fix(text)
+        logging.debug("Text after removing contractions: %s", cleaned_text)
+        return cleaned_text
+    except Exception as e:
+        logging.error("Error occurred while removing contractions: %s", str(e))
+        return text  # Return original text in case of error
 
 
 def remove_stopwords(text):
@@ -167,7 +198,7 @@ def remove_punc(list_token):
         strg_numb = '''0123456789'''
         strg_3dots = '...'
         strg_2dots = ".."
-        strg_punc = '''!()+-[]{}|;:'"\\,<>./?@#$£%^&*_~“”…‘’'''
+        strg_punc = string.punctuation
         strg_output = ''
         # for idx, char in enumerate(strg_token):
         # print(item)
@@ -219,7 +250,7 @@ def posttokenization_cleaning(unkn_input):
 # ------------------------------------------ CHUNK 8: Full Function ------------------------------------------
 # Function to Clean Tweets
 def clean_tweets(df):
-    df['user_description'] = df['text'].astype(str)
+    df['text'] = df['text'].astype(str)
     df['pretoken'] = df['text'].apply(pretokenization_cleaning)
     df['token'] = df['pretoken'].apply(tokenize)
     df['lemmatized'] = df['token'].apply(lemmatize)
@@ -243,10 +274,8 @@ def process_file(file_path):
     file_extension = os.path.splitext(file_path)[-1].lower()
 
     if file_extension == '.json':
-        df = pd.read_json(file_path,
-                          dtype={'tweet_id': 'str',
-                                 'text': 'str',
-                                 'user_description': 'str'})
+        df = jsons_to_csv(file_path)
+
     elif file_extension == '.csv':
         df = pd.read_csv(file_path,
                          dtype={'tweet_id': 'str',
@@ -260,58 +289,86 @@ def process_file(file_path):
     df = df[df['lang'] == 'en']
     df = clean_tweets(df)
     df = clean_bios(df)
-    # TODO: Fix the errors in string length for bios
     # Add a new column for the original filename without extension
     filename = os.path.splitext(os.path.basename(file_path))[0]
     df['original_filename'] = filename
 
     return df
 
+# ------------------------------------------ CHUNK 9: Document Term Matrix Functions  ---------------------------
+def dtm(df, column):
+    count_vec = MultiLabelBinarizer()
+    mlb = count_vec.fit(df[column])
+    term_document_matrix = pd.DataFrame(mlb.transform(df[column]), columns=[mlb.classes_])
+    return term_document_matrix
 
-# ------------------------------------------ CHUNK 9: Clean Datasets  ------------------------------------------
+
+# ------------------------------------------ CHUNK 10: Clean Datasets  ------------------------------------------
+# Mark start time
+now = datetime.now()
+current_time = now.strftime("%H:%M:%S")
+print("Began processing Study 1 at =", current_time)
 
 # Study 1
+# Clean Tweets
 study1 = process_file("data/study_1_cancel_culture/raw_data/cc_full.csv")
 study1.to_csv("data/study_1_cancel_culture/study1_cleaned.csv", index=False)
+# Document Term Matrices
+study1_dtm_tweets = dtm(study1, "posttoken")
+study1_dtm_tweets.to_csv("data/study_1_cancel_culture/study1_dtm_tweets.csv", index=False)
+study1_dtm_bio = dtm(study1, "posttoken_bio")
+study1_dtm_bio.to_csv("data/study_1_cancel_culture/study1_dtm_bio.csv", index=False)
+# Mark time
 now = datetime.now()
 current_time = now.strftime("%H:%M:%S")
 print("Study 1 done at =", current_time)
 
 # Study 2
+# Preprocess Tweets
 isover1 = process_file("data/study_2_isoverparty/isover1.csv")
 isover2 = process_file("data/study_2_isoverparty/isover2.csv")
 isoverparty = process_file("data/study_2_isoverparty/isoverparty.csv")
-# is_over = process_file("data/study_2_isoverparty/is_over.csv")
-# TODO: Identify error in is_over dataframe cleaning
 study2 = pd.concat([isover1, isover2, isoverparty], ignore_index=True)
 study2.to_csv("data/study_2_isoverparty/study2.csv", index=False)
+# Document term matrices
+study2_dtm_tweets = dtm(study2, "posttoken")
+study2_dtm_tweets.to_csv("data/study_2_isoverparty/study2_dtm_tweets.csv", index=False)
+study2_dtm_bio = dtm(study2, "posttoken_bio")
+study2_dtm_bio.to_csv("data/study_2_isoverparty/study2_dtm_bio.csv", index=False)
+# Mark completion time
 now = datetime.now()
 current_time = now.strftime("%H:%M:%S")
 print("Study 2 done at =", current_time)
 
 # Study 3
+# Preprocess Tweets
 faculty_2 = process_file("data/study_3_faculty/faculty_2.csv")
 faculty_3 = process_file("data/study_3_faculty/faculty_3.csv")
 faculty_query2_1 = process_file("data/study_3_faculty/faculty_query2_1.csv")
 faculty = process_file("data/study_3_faculty/faculty.csv")
 study3 = pd.concat([faculty_2, faculty_3, faculty_query2_1, faculty], ignore_index=True)
 study3.to_csv("data/study_3_faculty/study3.csv")
+# Document term matrices
+study3_dtm_tweets = dtm(study3, "posttoken")
+study3_dtm_tweets.to_csv("data/study_3_faculty/study3_dtm_tweets.csv", index=False)
+study3_dtm_bio = dtm(study3, "posttoken_bio")
+study3_dtm_bio.to_csv("data/study_3_faculty/study3_dtm_bio.csv", index=False)
+# Mark completion time
 now = datetime.now()
 current_time = now.strftime("%H:%M:%S")
 print("Study 3 done at =", current_time)
 
 # Study 4
+# Preprocess tweets
 aaron_rodgers = process_file('data/study_4_celebrity/aaron_rodgers.csv')
 armie_hammer = process_file('data/study_4_celebrity/armie_hammer.csv')
-# dave_chappelle = process_file('data/study_4_celebrity/dave_chappelle.csv')
-# TODO: Fix error with string length in dave_chappelle
+dave_chappelle = process_file('data/study_4_celebrity/dave_chappelle.csv')
 ellen = process_file('data/study_4_celebrity/ellen.csv')
 james_charles = process_file('data/study_4_celebrity/james_charles.csv')
 kanye = process_file('data/study_4_celebrity/kanye.csv')
 r_kelly = process_file('data/study_4_celebrity/r_kelly.csv')
 shane_dawson = process_file('data/study_4_celebrity/shane_dawson.csv')
-# travis_scott = process_file('data/study_4_celebrity/travis_scott.csv')
-# TODO: Fix error in string length travis scott
+travis_scott = process_file('data/study_4_celebrity/travis_scott.csv')
 dojacat = process_file('data/study_4_celebrity/dojacat.json')
 kanyewest = process_file('data/study_4_celebrity/kanyewest.json')
 lindsayellis = process_file('data/study_4_celebrity/lindsayellis.json')
@@ -320,57 +377,47 @@ will_smith_full = process_file('data/study_4_celebrity/will_smith_full.json')
 study4 = pd.concat([aaron_rodgers, armie_hammer, ellen,
                     james_charles, kanye, r_kelly,
                     shane_dawson, dojacat, kanyewest,
-                    lindsayellis, rkelly, will_smith_full],
+                    lindsayellis, rkelly, will_smith_full, dave_chappelle, travis_scott],
                    ignore_index=True)
 study4.to_csv("data/study_4_celebrity/study4.csv")
+# Document term matrices
+study4_dtm_tweets = dtm(study4, "posttoken")
+study4_dtm_tweets.to_csv("data/study_4_celebrity/study4_dtm_tweets.csv", index=False)
+study4_dtm_bio = dtm(study4, "posttoken_bio")
+study4_dtm_bio.to_csv("data/study_4_celebrity/study4_dtm_bio.csv", index=False)
+# Mark completion time
 now = datetime.now()
 current_time = now.strftime("%H:%M:%S")
 print("Study 4 done at =", current_time)
 
 # Study 5
+# Process Tweets
 AaronMSchlossberg = process_file('data/study_5_civilians/AaronMSchlossberg.csv')
 bbqbecky = process_file('data/study_5_civilians/bbqbecky.csv')
 PoolPatrolPaula = process_file('data/study_5_civilians/PoolPatrolPaula.csv')
 RhondaPolon = process_file('data/study_5_civilians/RhondaPolon.csv')
-# bbqbeckyj = process_file('data/study_5_civilians/bbqbecky.json')
-# justinesacco = process_file('data/study_5_civilians/justinesacco.json')
-# permitpatty = process_file('data/study_5_civilians/permitpatty.json')
-# TODO: All json files in study 5 encounter errors with string length
-study5 = pd.concat([AaronMSchlossberg, bbqbecky, PoolPatrolPaula, RhondaPolon])
+bbqbeckyj = process_file('data/study_5_civilians/bbqbecky.json')
+justinesacco = process_file('data/study_5_civilians/justinesacco.json')
+permitpatty = process_file('data/study_5_civilians/permitpatty.json')
+study5 = pd.concat([AaronMSchlossberg, bbqbecky, PoolPatrolPaula, RhondaPolon, bbqbeckyj, justinesacco, permitpatty])
 study5.to_csv("data/study_5_civilians/study5.csv")
+# Document term matrices
+study5_dtm_tweets = dtm(study5, "posttoken")
+study5_dtm_tweets.to_csv("data/study_5_civilians/study5_dtm_tweets.csv", index=False)
+study5_dtm_bio = dtm(study5, "posttoken_bio")
+study5_dtm_bio.to_csv("data/study_5_civilians/study5_dtm_bio.csv", index=False)
 now = datetime.now()
 current_time = now.strftime("%H:%M:%S")
 print("Study 5 done at =", current_time)
 
-# -------------------------------------- CHUNK 10: TERM DOCUMENT MATRIX --------------------------------------
+# Study 2.5 Is Over
+is_over = process_file("data/study_2_isoverparty/is_over.csv")
+is_over.to_csv("data/study_2_isoverparty/is_over_clean.csv")
+is_over_dtm_tweets = dtm(is_over, "posttoken")
+is_over_dtm_bio = dtm(is_over, "posttoken_bio")
+is_over_dtm_tweets.to_csv("data/study_2_isoverparty/is_over_dtm_tweets.csv", index=False)
+is_over_dtm_bio.to_csv("data/study_2_isoverparty/is_over_dtm_bio.csv", index=False)
 
-test_df = pd.read_csv("data/study1.csv", nrows=100)
-# Count Vectorizer
-vect = CountVectorizer()
-vects = vect.fit_transform(test_df.posttoken)
-
-# Select the first five rows from the data set
-td = pd.DataFrame(vects.todense())
-td.columns = vect.get_feature_names_out()
-term_document_matrix = td.T
-term_document_matrix.columns = ['CC_tweet ' + str(i) for i in range(1, len(term_document_matrix.axes[1]) + 1)]
-term_document_matrix['total_count'] = term_document_matrix.sum(axis=1)
-
-# Top 25 words
-term_document_matrix = term_document_matrix.sort_values(by='total_count', ascending=False)[:25]
-
-# Print the first 10 rows
-print(term_document_matrix.drop(columns=['total_count']).head(10))
-
-# Quick Visualization
-term_document_matrix['total_count'].plot.bar()
-
-# MEANING EXTRACTION METHOD DATA PREP
-
-# Set word threshold: Filter tweets with <5 words
-
-# Create counts of words that appear in < 10% of Tweets
-
-# Create the matrix that is all tweets by all words binary 0/1
-
-# PCA
+now = datetime.now()
+current_time = now.strftime("%H:%M:%S")
+print("Is Over done at =", current_time)
