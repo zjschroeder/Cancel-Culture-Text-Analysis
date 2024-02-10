@@ -3,3 +3,5 @@ data/
 .Rproj.user
 
 politics_bio/
+
+.RData

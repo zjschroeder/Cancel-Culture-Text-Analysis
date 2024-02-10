@@ -29,6 +29,9 @@ library(quanteda)
 library(tidyverse)
 library(quanteda.textstats)
 library(igraph)
+library(ggplot2)
+library(ggrepel)
+
 
 twitterdata = read.csv(here::here("data/study1.csv"), nrows = 1000) %>% 
   mutate(
@@ -44,28 +47,65 @@ terms_cosine <- textstat_simil(data_terms_clean, margin = "features", method = "
 terms_g <- graph_from_adjacency_matrix(as.matrix(terms_cosine), mode = "undirected", weighted = TRUE, diag = FALSE) 
 ```
 
+#Partisan Terms
+
+```{r}
+terms <- c(
+  "altright","berniecrat",
+  "americafirst","bernie",
+  "buildthewall","joebiden",
+  "ccot","bluewave",
+  "conserv","hillary",
+  "deplorable","communist",
+  "drainttheswamp","dem",
+  "gop","demforce",
+  "jebbush","democrat",
+  "keepamericagreat","exgop",
+  "libertarian","fightbackresistance",
+  "makeamericagreatagain", "feelthebern",
+  "marcorrubio","imwithher",
+  "neverhillary","left",
+  "pence","liber",
+  "raised right","marxist",
+  "redwave","nastywoman",
+  "republican","neveragain",
+  "rightwing","neverthelessshepersisted",
+  "reagan","notmypresident",
+  "tcot","obama",
+  "teaparty","progress",
+  "tedcruz","resist",
+  "donaldtrump","sjw",
+  "votered","takeaction",
+  "bush","biden",
+  "rubio","sanders",
+  "trump", "berniesanders",
+  "hillaryclinton","uniteblue","votebernie","voteblue","votehillary")
+partisan <- c(rep(c("conserv", "lib"), 28), rep("lib",5)) %>% factor()
+essig_dellaposta <- tibble(terms, 
+                           partisan,
+                           p = as.numeric(partisan)
+)
+```
+
+
 
 # Partisan Network
 ```{r}
 ###############################################################################################
 #PRE-PROCESSING DATA & CODE: The data and code in this section are conducted to produce the TFIDF file that will be available for replication data. The pre-processing data used in this section will NOT be made publicly available (per Twitter/X restrictions on data sharing), but we have made the code available. 
 ###############################################################################################
-library(quanteda)
 #data wrangling
- partisan_corp <- corpus(data_partisans, text_field = "text2") #dataframe to corpus
- partisan_Dfm <- dfm(partisan_corp, verbose = FALSE) #corpus to dfm
- partisan_Dfm <- dfm_subset(partisan_Dfm, ntoken(partisan_Dfm) > 0) #remove empty documents
- data_partisans_clean <- dfm_tfidf(partisan_Dfm)
+ # partisan_corp <- corpus(data_partisans, text_field = "text2") #dataframe to corpus
+ # partisan_Dfm <- dfm(partisan_corp, verbose = FALSE) #corpus to dfm
+ # partisan_Dfm <- dfm_subset(partisan_Dfm, ntoken(partisan_Dfm) > 0) #remove empty documents
+ # data_partisans_clean <- dfm_tfidf(partisan_Dfm)
 
-library(quanteda.textstats)
-library(igraph)
-library(dplyr)
  
  #load TF-IDF file
- # load("replicationdata_partisans.RData")
-        
+load("politics_bio/replicationdata_partisans.RData")
+data_partisans <- data_partisans_clean@docvars
 #compute cosine similarity matrix 
- partisans_cosine <- textstat_simil(data_partisans_clean, margin = "documents", method = "cosine")
+partisans_cosine <- textstat_simil(data_partisans_clean, margin = "documents", method = "cosine")
 
 #igraph object
 partisans_g <- graph_from_adjacency_matrix(as.matrix(partisans_cosine), mode = "undirected", weighted = TRUE, diag = FALSE)
@@ -95,8 +135,6 @@ partisans_g3 <- delete.vertices(partisans_g2, Isolated) #remove isolated nodes
 ###############################################################################################
 #PRE-PROCESSING DATA & CODE: The data and code in this section are conducted to produce the TFIDF file that will be available for replication data. The pre-processing data used in this section will NOT be made publicly available (per Twitter/X restrictions on data sharing), but we have made the code available. 
 ###############################################################################################
-library(ggplot2)
-library(ggrepel)
 
 ##### #load data
 ##### load("data_scatterplot_preprocess.RData")
@@ -147,23 +185,25 @@ library(ggrepel)
 ###############################################################################################
 #REPLICATION DATA: The data and code for this section are available for study replication.
 ###############################################################################################
-load("replicationdata_scatterplot.RData")
+load("politics_bio/replicationdata_scatterplot.RData")
 
 #For plot
-    mid <- mean(data_scatter$partisanlean)
+mid <- mean(data_scatter$partisanlean)
 
 #scatterplot
-    LIBandCONSERV <- ggplot(data_scatter, aes(x = libcos , y = concos, label = rownames(feature1))) + geom_abline(intercept = 0, slope = 1) + 
-      geom_label_repel(size =6, aes(color = partisanlean, label=feature1, hjust=0, vjust=0), data=data_scatter, max.overlaps = getOption("ggrepel.max.overlaps", default = 100), segment.size = 0, label.padding = .3, box.padding = .3, point.padding = .5, force = 2) + scale_color_gradient2(midpoint = mid, low = "navyblue", mid = "grey50", high = "darkred", space = "Lab" )
+LIBandCONSERV <- ggplot(data_scatter, aes(x = libcos , y = concos, label = rownames(feature1))) + 
+  geom_abline(intercept = 0, slope = 1) + 
+  geom_label_repel(size =6, aes(color = partisanlean, label=feature1, hjust=0, vjust=0), data=data_scatter, max.overlaps = getOption("ggrepel.max.overlaps", default = 100), segment.size = 0, label.padding = .3, box.padding = .3, point.padding = .5, force = 2) + 
+  scale_color_gradient2(midpoint = mid, low = "navyblue", mid = "grey50", high = "darkred", space = "Lab" )
     
        #change background color
-    test <- LIBandCONSERV + theme(legend.position = "none",
-      panel.background = element_rect(fill = "white",colour = "white", size = 0.5, linetype = "solid"),
-      panel.grid.major = element_line(size = 0.5, linetype = 'solid',colour = "gray90"), 
-      panel.grid.minor = element_line(size = 0.25, linetype = 'solid', colour = "gray90"),
-      axis.title.x = element_text(size = 20), axis.title.y = element_text(size = 20),plot.title = element_text(size = 25),
-      axis.text.x = element_text(size=14),
-      axis.text.y = element_text(size=14)) + 
+test <- LIBandCONSERV + theme(legend.position = "none",
+  panel.background = element_rect(fill = "white",colour = "white", linewidth = 0.5, linetype = "solid"),
+  panel.grid.major = element_line(linewidth = 0.5, linetype = 'solid',colour = "gray90"), 
+  panel.grid.minor = element_line(linewidth = 0.25, linetype = 'solid', colour = "gray90"),
+  axis.title.x = element_text(size = 20), axis.title.y = element_text(size = 20),plot.title = element_text(size = 25),
+  axis.text.x = element_text(size=14),
+  axis.text.y = element_text(size=14)) + 
   scale_x_continuous(limits = c(-.06, .2), n.breaks = 6) + 
   scale_y_continuous(limits = c(-.06, .28), n.breaks = 6) +
   xlab("Liberal Cosine Value") + ylab("Conservative Cosine Value")
@@ -179,13 +219,14 @@ library(RColorBrewer)
 library(viridis)
 
 #load data
-    load("replicationdata_heatmap.RData")
+load("politics_bio/replicationdata_heatmap.RData")
 
 #cosine Similarity matrix
- test_cosine <- textstat_simil(heat_TFIDF, margin = "features", method = "cosine") #correlation
- test_corr <- textstat_simil(heat_TFIDF, margin = "features", method = "correlation") #cosine
- cos_mat <- as.matrix(test_cosine)
- corr_mat <- as.matrix(test_corr)
+test_cosine <- textstat_simil(heat_TFIDF, margin = "features", method = "cosine") #correlation
+test_corr <- textstat_simil(heat_TFIDF, margin = "features", method = "correlation") #cosine
+cos_mat <- as.matrix(test_cosine) %>% as_tibble()
+x <- names(cos_mat)
+corr_mat <- as.matrix(test_corr)
 
 #heatmap
 pheatmap(cos_mat, display_numbers = TRUE, cluster_rows = FALSE, cluster_cols = FALSE)
