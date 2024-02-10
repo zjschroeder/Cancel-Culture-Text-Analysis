@@ -1,0 +1,16 @@
+#!/bin/bash
+#SBATCH --account=hodgeslab # PIRG  
+#SBATCH --job-name=mem_tweets # Name of your job  
+#SBATCH --partition=long # What kind of node do you need? 
+#SBATCH --time=5-00:00:00  # How long will it take to run?
+#SBATCH --nodes=1  
+#SBATCH --mem=100000 # Use this to select how much memory you need (in mb)  
+#SBATCH --output=/gpfs/projects/hodgeslab/zschroe2/twitter_cancel_culture/mem_tweets-job.out
+#SBATCH --error=/gpfs/projects/hodgeslab/zschroe2/twitter_cancel_culture/mem_tweets-job.err
+
+cd /gpfs/projects/hodgeslab/zschroe2/twitter_cancel_culture/ # NOTE: In the batch call you need to specify gpfs/projects/PIRG/account. The gpfs isn't necessary when you're using the terminal. Idk why
+
+module load python3/3.11.4 
+source tcc_env/bin/activate
+
+python main.py

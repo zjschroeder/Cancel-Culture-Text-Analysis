@@ -296,28 +296,28 @@ print("Began processing Study 1 at =", current_time)
 
 # Study 1
 # Clean Tweets
-study1 = process_file("data/study_1_cancel_culture/raw_data/cc_full.csv")
-study1.to_csv("data/study_1_cancel_culture/study1_cleaned.csv", index=False)
+#study1 = process_file("data/study_1_cancel_culture/raw_data/cc_full.csv")
+#study1.to_csv("data/study_1_cancel_culture/study1_cleaned.csv", index=False)
 # Document Term Matrices
 
 # Mark time
-now = datetime.now()
-current_time = now.strftime("%H:%M:%S")
-print("Study 1 done at =", current_time)
+#now = datetime.now()
+#current_time = now.strftime("%H:%M:%S")
+#print("Study 1 done at =", current_time)
 
 # Study 2
 # Preprocess Tweets
-isover1 = process_file("data/study_2_isoverparty/isover1.csv")
-isover2 = process_file("data/study_2_isoverparty/isover2.csv")
-isoverparty = process_file("data/study_2_isoverparty/isoverparty.csv")
-study2 = pd.concat([isover1, isover2, isoverparty], ignore_index=True)
-study2.to_csv("data/study_2_isoverparty/study2.csv", index=False)
+# isover1 = process_file("data/study_2_isoverparty/isover1.csv")
+#isover2 = process_file("data/study_2_isoverparty/isover2.csv")
+#isoverparty = process_file("data/study_2_isoverparty/isoverparty.csv")
+#study2 = pd.concat([isover1, isover2, isoverparty], ignore_index=True)
+#study2.to_csv("data/study_2_isoverparty/study2.csv", index=False)
 # Document term matrices
 
 # Mark completion time
-now = datetime.now()
-current_time = now.strftime("%H:%M:%S")
-print("Study 2 done at =", current_time)
+# now = datetime.now()
+# current_time = now.strftime("%H:%M:%S")
+# print("Study 2 done at =", current_time)
 
 # Study 3
 # Preprocess Tweets
