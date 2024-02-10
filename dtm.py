@@ -1,18 +1,47 @@
+# IN THE TWIST OF THE CENTURY, WE'RE TRANSITIONING BACK TO USING R FOR THE REST OF THE ANALYSES
+# XOXO GOSSIP GIRL
+
 # ------------------------------------------ CHUNK 1: Document Term Matrix Functions ------------------------------------------
+import pandas as pd
+import math
 from sklearn.preprocessing import MultiLabelBinarizer
 from sklearn.feature_extraction.text import CountVectorizer
-import pandas as pd
 
 df = pd.read_csv("data/study1.csv", nrows=100)
 
 # Count DTM
-vect = CountVectorizer()
-vects = vect.fit_transform(df.posttoken)
-td = pd.DataFrame(vects.todense()).iloc[:5]
-td.columns = vect.get_feature_names_out()
-term_document_matrix = td.T
-term_document_matrix.columns = ['Doc '+str(i) for i in range(1, 6)]
-term_document_matrix['total_count'] = term_document_matrix.sum(axis=1)
+#Term Document Matrix
+def count_dtm(column):
+    vect = CountVectorizer()
+    vects = vect.fit_transform(column)
+    td = pd.DataFrame(vects.todense())
+    td.columns = vect.get_feature_names_out()
+    term_count_matrix = td.T
+    term_count_matrix.columns = ['Doc ' + str(i) for i in range(1, len(column)+1)]
+    # Term Frequency: Number of times word appears in document / total words in document
+    words_in_doc = pd.DataFrame(term_count_matrix.sum()).T
+    term_frequency = term_count_matrix.div(words_in_doc.iloc[0])
+    # Inverse Document Frequency: log(Total documents in corpus / number of docs with term)
+
+    return(term_count_matrix)
+
+
+y = count_dtm(df.posttoken_bio)
+docs_in_corpus = y.columns
+n_term_uses = ((len(docs_in_corpus)) - (y[docs_in_corpus] == 0).astype(int).sum(axis=1))
+
+inverse_doc_frequency = (len(docs_in_corpus)/n_term_uses).apply(math.lo)
+
+# TF-IDF: TF * IDF
+# Cosine Similarity Matrix: Term X Term cosine similarity matrix
+### Minimum threshold of cos = .02
+# Other metrics of interest
+###
+### times_w_used = term_document_matrix.sum(axis=1)
+### n_docs_with_w = (len(cols_to_calc)) - (
+    ### (term_document_matrix[cols_to_calc] == 0).astype(int).sum(axis=1))
+
+
 
 # TODO: Figure out why this does/doesn't work on all dataframes
 
