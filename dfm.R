@@ -9,7 +9,6 @@ library(pheatmap)
 library(RColorBrewer)
 library(viridis)
 library(stringr)
-library(purrr)
 
 lib_words <- rio::import('data/partisan_terms.csv') %>% 
   filter(p == 2) %>% 
@@ -34,7 +33,17 @@ csv_to_tfidf <- function(path_to_csv){
   # Read in csv
   df = read.csv(here::here(path_to_csv)) %>% 
     mutate(
-      posttoken_bio = gsub("[[:punct:]]", "", posttoken_bio))
+      posttoken_bio = gsub("[[:punct:]]", "", posttoken_bio),
+      posttoken = gsub("[[:punct:]]", "", posttoken)
+      )
+  
+  tweets_binary_mat <- corpus(df, text_field = "posttoken") %>% 
+    tokens() %>% 
+    dfm(., 
+        verbose = FALSE, 
+        remove_padding = TRUE) %>% 
+    dfm_weight(scheme = "boolean") %>% 
+    as.matrix()
   
   # Partisan Aggregated Nodes
   postoken_bio_partisan <- lapply(df$posttoken_bio, 
@@ -59,13 +68,14 @@ csv_to_tfidf <- function(path_to_csv){
   data_tfidf <- dfm_trim(data_dfm, 
                          min_docfreq = 0.001, 
                          docfreq_type = "prop") %>% 
-    dfm_subset(., 
-               ntoken(.) > 0) %>% 
+    dfm_subset(., ntoken(.) > 0) %>% 
     dfm_tfidf()
   
   data_binary_mat <- data_dfm %>% 
     dfm_weight(scheme = "boolean") %>% 
     as.matrix()
+  
+  
   
   
   # Cosine similarity matrix
@@ -179,6 +189,7 @@ csv_to_tfidf <- function(path_to_csv){
     df = df,
     data_tfidf = data_tfidf,
     data_binary_mat = data_binary_mat,
+    tweets_binary_mat = tweets_binary_mat,
     tfidf_mat = as.matrix(data_tfidf), 
     cos_sim_mat = terms_cosine,
     cos_sim_fig = terms_graph,
@@ -188,18 +199,18 @@ csv_to_tfidf <- function(path_to_csv){
   )
 }
 
-study1 <- csv_to_tfidf("data/study1.csv")
+study1 <- csv_to_tfidf("data/study_1_cancel_culture/study1_cleaned.csv")
 save(study1, "data/study1_dfm.RData")
 
-study2 <- csv_to_tfidf("data/study2.csv")
+study2 <- csv_to_tfidf("data/study_2_isoverparty/study2.csv")
 save(study2, "data/study2_dfm.RData")
 
-study3 <- csv_to_tfidf("data/study3.csv")
+study3 <- csv_to_tfidf("data/study_3_faculty/study3.csv")
 save(study3, "data/study3_dfm.RData")
 
-study4 <- csv_to_tfidf("data/study4.csv")
+study4 <- csv_to_tfidf("data/study_4_celebrity/study4.csv")
 save(study4, "data/study4_dfm.RData")
 
-study5 <- csv_to_tfidf("data/study5.csv")
+study5 <- csv_to_tfidf("data/study_5_civilians/study5.csv")
 save(study5, "data/study5_dfm.RData")
 
