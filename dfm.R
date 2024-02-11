@@ -1,9 +1,4 @@
 
-> Adaptation from Essig and DellaPosta (2024)
-
-# Term Network
-
-```{r}
 library(quanteda)
 library(tidyverse)
 library(quanteda.textstats)
@@ -15,20 +10,18 @@ library(RColorBrewer)
 library(viridis)
 library(stringr)
 library(purrr)
-```
 
-```{r}
 lib_words <- rio::import('data/partisan_terms.csv') %>% 
-    filter(p == 2) %>% 
-    select(terms) %>% 
-    as_vector() %>% 
-    paste(., collapse = "|")
+  filter(p == 2) %>% 
+  select(terms) %>% 
+  as_vector() %>% 
+  paste(., collapse = "|")
 
 conserv_words <- rio::import('data/partisan_terms.csv') %>% 
-    filter(p == 1) %>% 
-    select(terms) %>% 
-    as_vector() %>% 
-    paste(., collapse = "|")
+  filter(p == 1) %>% 
+  select(terms) %>% 
+  as_vector() %>% 
+  paste(., collapse = "|")
 
 replace_words <- function(string, words, replacement) {
   for (word in words) {
@@ -45,55 +38,61 @@ csv_to_tfidf <- function(path_to_csv){
   
   # Partisan Aggregated Nodes
   postoken_bio_partisan <- lapply(df$posttoken_bio, 
-                                replace_words, 
-                                lib_words, 
-                                replacement = "liber")
+                                  replace_words, 
+                                  lib_words, 
+                                  replacement = "liber")
   
   df$posttoken_bio_partisan <- lapply(postoken_bio_partisan, 
-                                          replace_words, 
-                                          conserv_words, 
-                                          replacement = "conserv") %>% 
-                                       unlist()
+                                      replace_words, 
+                                      conserv_words, 
+                                      replacement = "conserv") %>% 
+    unlist()
   
   
   # Term Frequencey-Inverse Document Frequency
-  data_tfidf <- corpus(df, text_field = "posttoken_bio") %>% 
-                tokens() %>% 
-                dfm(., 
-                   verbose = FALSE, 
-                   remove_padding = TRUE) %>% 
-               dfm_trim(., 
-                   min_docfreq = 0.001, 
-                   docfreq_type = "prop") %>% 
-               dfm_subset(., 
-                          ntoken(.) > 0) %>% 
-               dfm_tfidf()
+  data_dfm <- corpus(df, text_field = "posttoken_bio") %>% 
+    tokens() %>% 
+    dfm(., 
+        verbose = FALSE, 
+        remove_padding = TRUE)
+  
+  data_tfidf <- dfm_trim(data_dfm, 
+                         min_docfreq = 0.001, 
+                         docfreq_type = "prop") %>% 
+    dfm_subset(., 
+               ntoken(.) > 0) %>% 
+    dfm_tfidf()
+  
+  data_binary_mat <- data_dfm %>% 
+    dfm_weight(scheme = "boolean") %>% 
+    as.matrix()
+  
   
   # Cosine similarity matrix
   terms_cosine <- textstat_simil(data_tfidf, 
                                  margin = "features", 
                                  method = "cosine") %>% 
-                  as.matrix()
+    as.matrix()
   
   #Graph of Terms and Connections
   terms_graph <- graph_from_adjacency_matrix(terms_cosine,
-                                         mode = "undirected", 
-                                         weighted = TRUE, 
-                                         diag = FALSE)
-
+                                             mode = "undirected", 
+                                             weighted = TRUE, 
+                                             diag = FALSE)
+  
   # Prepare for scatterplot
   scatter_TFIDF <- corpus(df, text_field = "posttoken_bio_partisan") %>% 
-                tokens() %>% 
-                dfm(., 
-                   verbose = FALSE, 
-                   remove_padding = TRUE) %>% 
-               dfm_trim(., 
-                   min_docfreq = 0.001, 
-                   docfreq_type = "prop") %>% 
-               dfm_subset(., 
-                          ntoken(.) > 0) %>% 
-               dfm_tfidf()
-          
+    tokens() %>% 
+    dfm(., 
+        verbose = FALSE, 
+        remove_padding = TRUE) %>% 
+    dfm_trim(., 
+             min_docfreq = 0.001, 
+             docfreq_type = "prop") %>% 
+    dfm_subset(., 
+               ntoken(.) > 0) %>% 
+    dfm_tfidf()
+  
   #compute partisan cosines
   scatter_COSliber <- as.data.frame(textstat_simil(scatter_TFIDF, 
                                                    scatter_TFIDF[, c("liber")], 
@@ -179,6 +178,7 @@ csv_to_tfidf <- function(path_to_csv){
   output = list(
     df = df,
     data_tfidf = data_tfidf,
+    data_binary_mat = data_binary_mat,
     tfidf_mat = as.matrix(data_tfidf), 
     cos_sim_mat = terms_cosine,
     cos_sim_fig = terms_graph,
@@ -187,13 +187,19 @@ csv_to_tfidf <- function(path_to_csv){
     partisan_figure = LIBandCONSERV
   )
 }
-```
 
-```{r}
 study1 <- csv_to_tfidf("data/study1.csv")
+save(study1, "data/study1_dfm.RData")
+
 study2 <- csv_to_tfidf("data/study2.csv")
+save(study2, "data/study2_dfm.RData")
+
 study3 <- csv_to_tfidf("data/study3.csv")
+save(study3, "data/study3_dfm.RData")
+
 study4 <- csv_to_tfidf("data/study4.csv")
+save(study4, "data/study4_dfm.RData")
+
 study5 <- csv_to_tfidf("data/study5.csv")
-```
+save(study5, "data/study5_dfm.RData")
 
