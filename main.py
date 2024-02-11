@@ -49,19 +49,14 @@ def jsons_to_csv(path):
     df2 = pd.DataFrame(df1['author'].apply(pd.Series)).add_prefix('user_')
     df3 = pd.DataFrame(df2['user_public_metrics'].apply(pd.Series)).add_prefix('user_')
     df4 = pd.json_normalize(df1['public_metrics'])
-    df1 = df1[
-        ['id', 'text', 'created_at', 'possibly_sensitive', 'conversation_id', 'lang', 'author_id', 'referenced_tweets']]
+    df1 = df1[df1.columns.intersection({'id', 'text', 'created_at', 'possibly_sensitive', 'conversation_id', 'lang', 'author_id', 'referenced_tweets'})]
     df1 = df1.rename(columns={"id": "tweet_id"})
-    df2 = df2[['user_username', 'user_verified', 'user_name', 'user_protected', 'user_description', 'user_created_at',
-               'user_url',
-               'user_pinned_tweet_id', 'user_location']]
-    df3 = df3[['user_tweet_count', 'user_listed_count', 'user_followers_count', 'user_following_count']]
+    df2 = df2[df2.columns.intersection({'user_username', 'user_verified', 'user_name', 'user_protected', 'user_description', 'user_created_at', 'user_url', 'user_pinned_tweet_id', 'user_location'})]
+    df3 = df3[df3.columns.intersection({'user_tweet_count', 'user_listed_count', 'user_followers_count', 'user_following_count'})]
     df3 = df3.rename(columns={"user_listed_count": "user_list_count"})
-    df4 = df4[['retweet_count', 'like_count', 'quote_count', 'reply_count']]
-
+    df4 = df4[df4.columns.intersection({'retweet_count', 'like_count', 'quote_count', 'reply_count'})]
     df6 = pd.concat([df1, df2, df3, df4], axis=1)
     return df6
-
 
 # ------------------------------------------ CHUNK 3: PRE-TOKEN DATA CLEANING ------------------------------------------
 
@@ -321,18 +316,16 @@ print("Began processing Study 1 at =", current_time)
 
 # Study 3
 # Preprocess Tweets
-faculty_2 = process_file("data/study_3_faculty/faculty_2.csv")
-faculty_3 = process_file("data/study_3_faculty/faculty_3.csv")
-faculty_query2_1 = process_file("data/study_3_faculty/faculty_query2_1.csv")
-faculty = process_file("data/study_3_faculty/faculty.csv")
-study3 = pd.concat([faculty_2, faculty_3, faculty_query2_1, faculty], ignore_index=True)
-study3.to_csv("data/study_3_faculty/study3.csv")
-# Document term matrices
-
+# faculty_2 = process_file("data/study_3_faculty/faculty_2.csv")
+# faculty_3 = process_file("data/study_3_faculty/faculty_3.csv")
+# faculty_query2_1 = process_file("data/study_3_faculty/faculty_query2_1.csv")
+# faculty = process_file("data/study_3_faculty/faculty.csv")
+# study3 = pd.concat([faculty_2, faculty_3, faculty_query2_1, faculty], ignore_index=True)
+# study3.to_csv("data/study_3_faculty/study3.csv")
 # Mark completion time
-now = datetime.now()
-current_time = now.strftime("%H:%M:%S")
-print("Study 3 done at =", current_time)
+# now = datetime.now()
+# current_time = now.strftime("%H:%M:%S")
+# print("Study 3 done at =", current_time)
 
 # Study 4
 # Preprocess tweets

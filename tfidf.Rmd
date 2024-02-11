@@ -18,63 +18,44 @@ library(quanteda.textstats)
 library(igraph)
 library(ggplot2)
 library(ggrepel)
+```
 
+```{r Import Data}
+partisan_terms <- rio::import('data/partisan_terms.csv')
 
 twitterdata = read.csv(here::here("data/study1.csv"), nrows = 1000) %>% 
   mutate(
     posttoken = gsub("[[:punct:]]", "", posttoken)
   )
-
-terms_corp <- corpus(twitterdata, text_field = "posttoken") %>% tokens()
-terms_Dfm <- dfm(terms_corp, verbose = FALSE) 
-terms_Dfm2<- dfm_trim(terms_Dfm, min_docfreq = 0.001, docfreq_type = "prop")
-terms_Dfm3 <- dfm_subset(terms_Dfm2, ntoken(terms_Dfm2) > 0) 
-data_terms_clean <- dfm_tfidf(terms_Dfm3)
-terms_cosine <- textstat_simil(data_terms_clean, margin = "features", method = "cosine")
-terms_g <- graph_from_adjacency_matrix(as.matrix(terms_cosine), mode = "undirected", weighted = TRUE, diag = FALSE) 
 ```
 
-#Partisan Terms
 
 ```{r}
-terms <- c(
-  "altright","berniecrat",
-  "americafirst","bernie",
-  "buildthewall","joebiden",
-  "ccot","bluewave",
-  "conserv","hillary",
-  "deplorable","communist",
-  "drainttheswamp","dem",
-  "gop","demforce",
-  "jebbush","democrat",
-  "keepamericagreat","exgop",
-  "libertarian","fightbackresistance",
-  "makeamericagreatagain", "feelthebern",
-  "marcorrubio","imwithher",
-  "neverhillary","left",
-  "pence","liber",
-  "raised right","marxist",
-  "redwave","nastywoman",
-  "republican","neveragain",
-  "rightwing","neverthelessshepersisted",
-  "reagan","notmypresident",
-  "tcot","obama",
-  "teaparty","progress",
-  "tedcruz","resist",
-  "donaldtrump","sjw",
-  "votered","takeaction",
-  "bush","biden",
-  "rubio","sanders",
-  "trump", "berniesanders",
-  "hillaryclinton","uniteblue","votebernie","voteblue","votehillary")
-partisan <- c(rep(c("conserv", "lib"), 28), rep("lib",5)) %>% factor()
-essig_dellaposta <- tibble(terms, 
-                           partisan,
-                           p = as.numeric(partisan)
-)
+terms_corp <- corpus(twitterdata, 
+                     text_field = "posttoken") %>% 
+              tokens()
+
+terms_Dfm <- dfm(terms_corp, verbose = FALSE) 
+
+x <- tibble(terms_Dfm)
+
+terms_Dfm2<- dfm_trim(terms_Dfm, min_docfreq = 0.001, 
+                      docfreq_type = "prop")
+
+terms_Dfm3 <- dfm_subset(terms_Dfm2, 
+                         ntoken(terms_Dfm2) > 0) 
+
+data_terms_clean <- dfm_tfidf(terms_Dfm3)
+
+terms_cosine <- textstat_simil(data_terms_clean, 
+                               margin = "features", 
+                               method = "cosine")
+
+terms_g <- graph_from_adjacency_matrix(as.matrix(terms_cosine),
+                                       mode = "undirected", 
+                                       weighted = TRUE, 
+                                       diag = FALSE) 
 ```
-
-
 
 # Partisan Network
 ```{r}
