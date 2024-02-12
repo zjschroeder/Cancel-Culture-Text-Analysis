@@ -5,3 +5,7 @@ data/
 politics_bio/
 
 .RData
+
+talapas/
+
+.Rhistory
