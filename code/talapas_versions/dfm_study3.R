@@ -164,12 +164,12 @@ csv_to_tfidf <- function(path_to_csv){
 # 
 # study4 <- csv_to_tfidf("data/study_4_celebrity/study4.csv")
 # save(study4, file = "data/study4_dfm.RData")
-# 
-# study3 <- csv_to_tfidf("data/study_3_faculty/study3.csv")
-# save(study3, file = "data/study3_dfm.RData")
-# 
+
+study3 <- csv_to_tfidf("data/study_3_faculty/study3.csv")
+save(study3, file = "data/study3_dfm.RData")
+
 # study2 <- csv_to_tfidf("data/study_2_isoverparty/study2.csv")
 # save(study2, file = "data/study2_dfm.RData")
-
-study1 <- csv_to_tfidf("data/study_1_cancel_culture/study1_cleaned.csv")
-save(study1, file = "data/study1_dfm.RData")
+# 
+# study1 <- csv_to_tfidf("data/study_1_cancel_culture/study1_cleaned.csv")
+# save(study1, file = "data/study1_dfm.RData")

@@ -1,0 +1,16 @@
+#!/bin/bash
+#SBATCH --account=hodgeslab # PIRG  
+#SBATCH --job-name=dfm_tweets # Name of your job  
+#SBATCH --partition=preempt # What kind of node do you need? 
+#SBATCH --requeue
+#SBATCH --time=1-00:00:00  # How long will it take to run?
+#SBATCH --nodes=1  
+#SBATCH --mem=374300 # Use this to select how much memory you need (in mb)  
+#SBATCH --output=/gpfs/projects/hodgeslab/zschroe2/twitter_cancel_culture/dfm_tweets-job.out
+#SBATCH --error=/gpfs/projects/hodgeslab/zschroe2/twitter_cancel_culture/dfm_tweets-job.err
+
+cd /gpfs/projects/hodgeslab/zschroe2/twitter_cancel_culture/ 
+
+module load R/4.1.3
+
+R --save < /gpfs/projects/hodgeslab/zschroe2/twitter_cancel_culture/dfm.R

@@ -1,0 +1,8 @@
+[Previously saved workspace restored]
+
+Installing package into ‘/gpfs/home/zschroe2/R/x86_64-pc-linux-gnu-library/4.1’
+(as ‘lib’ is unspecified)
+Error in contrib.url(repos, type) : 
+  trying to use CRAN without setting a mirror
+Calls: install.packages -> startsWith -> contrib.url
+Execution halted

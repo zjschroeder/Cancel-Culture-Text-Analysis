@@ -158,7 +158,7 @@ csv_to_tfidf <- function(path_to_csv){
   )
 }
 
-
+# 
 # study5 <- csv_to_tfidf("data/study_5_civilians/study5.csv")
 # save(study5, file = "data/study5_dfm.RData")
 # 
@@ -167,9 +167,9 @@ csv_to_tfidf <- function(path_to_csv){
 # 
 # study3 <- csv_to_tfidf("data/study_3_faculty/study3.csv")
 # save(study3, file = "data/study3_dfm.RData")
-# 
-# study2 <- csv_to_tfidf("data/study_2_isoverparty/study2.csv")
-# save(study2, file = "data/study2_dfm.RData")
 
-study1 <- csv_to_tfidf("data/study_1_cancel_culture/study1_cleaned.csv")
-save(study1, file = "data/study1_dfm.RData")
+study2 <- csv_to_tfidf("data/study_2_isoverparty/study2.csv")
+save(study2, file = "data/study2_dfm.RData")
+
+# study1 <- csv_to_tfidf("data/study_1_cancel_culture/study1_cleaned.csv")
+# save(study1, file = "data/study1_dfm.RData")

@@ -1,0 +1,37 @@
+{\rtf1\ansi\ansicpg1252\cocoartf2759
+\cocoatextscaling0\cocoaplatform0{\fonttbl\f0\fswiss\fcharset0 Helvetica;\f1\fswiss\fcharset0 Helvetica-Bold;}
+{\colortbl;\red255\green255\blue255;}
+{\*\expandedcolortbl;;}
+{\*\listtable{\list\listtemplateid1\listhybrid{\listlevel\levelnfc23\levelnfcn23\leveljc0\leveljcn0\levelfollow0\levelstartat1\levelspace360\levelindent0{\*\levelmarker \{hyphen\}}{\leveltext\leveltemplateid1\'01\uc0\u8259 ;}{\levelnumbers;}\fi-360\li720\lin720 }{\listname ;}\listid1}}
+{\*\listoverridetable{\listoverride\listid1\listoverridecount0\ls1}}
+\margl1440\margr1440\vieww11520\viewh8400\viewkind0
+\pard\tx720\tx1440\tx2160\tx2880\tx3600\tx4320\tx5040\tx5760\tx6480\tx7200\tx7920\tx8640\pardirnatural\partightenfactor0
+
+\f0\fs24 \cf0 Code files:\
+\pard\tx220\tx720\tx1440\tx2160\tx2880\tx3600\tx4320\tx5040\tx5760\tx6480\tx7200\tx7920\tx8640\li720\fi-720\pardirnatural\partightenfactor0
+\ls1\ilvl0\cf0 {\listtext	\uc0\u8259 	}
+\f1\b cleaning_raw_data.py
+\f0\b0  is the initial code I used to clean all the raw tweets (tokenize, lemmatize, etc) \
+{\listtext	\uc0\u8259 	}
+\f1\b dfm.R
+\f0\b0  uses the quanteda package to transform the tokenized data into term frequency inverse document frequency matrices as well as to calculate the cosine similarity, binary and count matrices\
+{\listtext	\uc0\u8259 	}
+\f1\b clean_files.R
+\f0\b0  is an additional step in cleaning the r files, i\'92ve realized I needed additional output from the dfm.R processes and run them here.\
+{\listtext	\uc0\u8259 	}
+\f1\b inspecting_dfms.Rmd
+\f0\b0  was used to look at the terms and term frequencies calculated in the dfm.R code (e.g., inspect cosine similarity values for partisan terms in twitter bios.\
+{\listtext	\uc0\u8259 	}
+\f1\b mem.R
+\f0\b0  is used to run the PCAs and LDAs for the meaning extraction method based on the clean data files.\
+\pard\tx720\tx1440\tx2160\tx2880\tx3600\tx4320\tx5040\tx5760\tx6480\tx7200\tx7920\tx8640\pardirnatural\partightenfactor0
+\cf0 \
+\
+\
+Talapas Running Notes:\
+\
+- They changed the nodelist names. My recommendation is, if it doesn\'92t look too crazy (which it rarely does since the 2023 re-release) use the preempt partition with an automatic requeue (\'97requeue) which lets you access nodes with 370gb of memory. \
+- Depending on how busy it is, there may be an advantage in requesting multiple nodes to increase your total memory allowance. I\'92m not sure what type of parallel processing this would permit, but just being able to hit multiple nodes for a combination of more than the usual allotment of memory seems cool.\
+- JobIds: 29859494 for Study 1 (which had the biggest dataset) to check memory usage\
+29859492 + 29859493 are studies 2 and 3 which had matrices of about 30gb at their largest in calculating the tf-idf and cosine similarity\
+}

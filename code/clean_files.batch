@@ -1,0 +1,16 @@
+#!/bin/bash
+#SBATCH --account=hodgeslab 
+#SBATCH --job-name=cleantw # Name of your job  
+#SBATCH --partition=preempt # What kind of node do you need? 
+#SBATCH --requeue
+#SBATCH --time=1-00:00:00  # How long will it take to run?
+#SBATCH --nodes=1  
+#SBATCH --mem=374300 # Use this to select how much memory you need (in mb)  
+#SBATCH --output=/gpfs/projects/hodgeslab/zschroe2/twitter_cancel_culture/cleantw-job.out
+#SBATCH --error=/gpfs/projects/hodgeslab/zschroe2/twitter_cancel_culture/cleantw-job.err
+
+cd /gpfs/projects/hodgeslab/zschroe2/
+
+module load R/4.1.3
+
+R --save < /gpfs/projects/hodgeslab/zschroe2/twitter_cancel_culture/clean_files.R
